@@ -1,3 +1,4 @@
+document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="/overrides.css">');
 const installButton = document.querySelector('#install-app');
 const status = document.querySelector('#install-status');
 const year = document.querySelector('#year');
