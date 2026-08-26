@@ -8,7 +8,7 @@
   "background_color": "#ffffff",
   "theme_color": "#062d70",
   "lang": "es-MX",
-  "icons": [{"src":"/brand/shinext-logo-original.png","sizes":"any","type":"image/png","purpose":"any"}],
+  "icons": [{"src":"/brand/shinext-logo-original.webp","sizes":"320x180","type":"image/webp","purpose":"any"}],
   "shortcuts": [
     {"name":"Solicitar limpieza","url":"/#solicitar"},
     {"name":"Quiero trabajar","url":"/#trabaja"}
