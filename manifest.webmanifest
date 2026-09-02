@@ -1,16 +1,20 @@
 {
+  "id": "/",
   "name": "Shinext",
   "short_name": "Shinext",
   "description": "Servicios profesionales de limpieza y portal de personal Shinext.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#062d70",
   "lang": "es-MX",
   "icons": [{"src":"/brand/shinext-logo-original.webp","sizes":"320x180","type":"image/webp","purpose":"any"}],
   "shortcuts": [
-    {"name":"Solicitar limpieza","url":"/#solicitar"},
-    {"name":"Quiero trabajar","url":"/#trabaja"}
+    {"name":"Solicitar limpieza","short_name":"Solicitar","url":"/#solicitar"},
+    {"name":"Quiero trabajar","short_name":"Trabajar","url":"/#trabaja"},
+    {"name":"Blog Shinext","short_name":"Blog","url":"/blog/"}
   ]
 }
