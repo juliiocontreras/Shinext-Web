@@ -15,6 +15,18 @@ document.querySelectorAll('[data-conversion]').forEach((element) => {
 // Firebase-ready banner contract. Replace this local array with Firestore data when the CRM is connected.
 window.ShinextBanners = window.ShinextBanners || [
   {
+    id: 'hero-limpieza-01', type: 'promotion', placement: 'hero',
+    title: 'Tu espacio limpio empieza aquí.',
+    text: 'Solicita limpieza profesional en Saltillo y recibe seguimiento de Shinext.',
+    cta: 'Solicitar limpieza', href: '#solicitar', active: true, audience: 'client', device: 'all'
+  },
+  {
+    id: 'blog-guia-01', type: 'content', placement: 'blog',
+    title: '¿Mantenimiento o limpieza profunda?',
+    text: 'Conoce cuándo conviene cada opción en nuestra guía de limpieza.',
+    cta: 'Leer guía', href: '/blog/limpieza-profunda-vs-mantenimiento/', active: true, audience: 'client', device: 'all'
+  },
+  {
     id: 'distribuidores-01', type: 'distributor', placement: 'distributor',
     title: '¿Eres distribuidor de productos de limpieza?',
     text: 'Buscamos alianzas con proveedores para ofrecer mejores condiciones a nuestra operación.',
@@ -39,7 +51,7 @@ function renderBanners() {
     link.href = banner.href || '#';
     link.dataset.bannerId = banner.id;
     if (/^https:\/\//.test(link.href)) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
-    link.innerHTML = `<div class="campaign-banner-copy"><span class="campaign-banner-kicker">${banner.type === 'distributor' ? 'Alianzas Shinext' : 'Promoción'}</span><strong>${banner.title}</strong><span>${banner.text}</span><b>${banner.cta || 'Conocer más'} →</b></div>`;
+    link.innerHTML = `<div class="campaign-banner-copy"><span class="campaign-banner-kicker">${banner.type === 'distributor' ? 'Alianzas Shinext' : banner.type === 'content' ? 'Guía Shinext' : 'Promoción'}</span><strong>${banner.title}</strong><span>${banner.text}</span><b>${banner.cta || 'Conocer más'} →</b></div>`;
     if (banner.image) {
       const image = document.createElement('img');
       image.src = banner.image; image.alt = ''; image.loading = 'lazy';
