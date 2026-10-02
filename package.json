@@ -2,12 +2,14 @@
   "name": "shinext-web",
   "private": true,
   "scripts": {
-    "test": "node --test tests/emulator/smoke.test.mjs",
+    "test": "node --test tests/emulator/*.test.mjs",
     "test:emulator": "node --test tests/emulator/smoke.test.mjs",
     "emulators": "firebase emulators:start --project shinext-local",
     "emulators:exec": "firebase emulators:exec --project shinext-local \"npm test\""
   },
   "devDependencies": {
-    "firebase-tools": "^14.16.0"
+    "firebase-tools": "^14.16.0",
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^12.4.0"
   }
 }
