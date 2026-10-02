@@ -18,6 +18,8 @@ import {
 
 const page = document.body.dataset.page;
 const respondToOffer = httpsCallable(functions, "respondToOffer");
+const addServiceNote = httpsCallable(functions, "addServiceNote");
+const reportIncident = httpsCallable(functions, "reportIncident");
 
 function setStatus(element, message, kind = "") {
   if (!element) return;
@@ -211,8 +213,9 @@ function renderOffers(offers) {
 }
 
 function renderServices(services) {
+  const list = document.querySelector("#confirmed-service-list");
   const upcoming = services
-    .filter((service) => ["scheduled", "en_route", "started"].includes(service.status))
+    .filter((service) => ["scheduled", "en_route", "started", "incident"].includes(service.status))
     .sort((a, b) => {
       const aDate = dateFrom(a.scheduledAt)?.getTime() || Number.MAX_SAFE_INTEGER;
       const bDate = dateFrom(b.scheduledAt)?.getTime() || Number.MAX_SAFE_INTEGER;
@@ -225,6 +228,46 @@ function renderServices(services) {
       ? `${upcoming[0].serviceType || "Limpieza"} · ${formatDate(upcoming[0].scheduledAt)}`
       : "Sin servicios programados";
   }
+
+  if (!list) return;
+
+  if (!upcoming.length) {
+    list.innerHTML = `<div class="notice-card"><strong>No tienes servicios confirmados.</strong><span>Cuando aceptes uno, aparecerá aquí con sus acciones de seguimiento.</span></div>`;
+    return;
+  }
+
+  list.innerHTML = upcoming.map((service) => {
+    const statusLabel = {
+      scheduled: "Programado",
+      en_route: "En camino",
+      started: "Iniciado",
+      incident: "Incidencia reportada",
+    }[service.status] || "Activo";
+
+    return `<article class="worker-service-card confirmed-card" data-service-card="${escapeHtml(service.id)}">
+      <div class="service-card-top">
+        <span class="service-status status-${escapeHtml(service.status)}">${statusLabel}</span>
+        <strong class="service-pay">${formatMoney(service.workerEarning)}</strong>
+      </div>
+      <h3>${escapeHtml(service.serviceType || "Servicio de limpieza")}</h3>
+      <dl class="service-details">
+        <div><dt>Fecha</dt><dd>${escapeHtml(formatDate(service.scheduledAt))}</dd></div>
+        <div><dt>Zona</dt><dd>${escapeHtml(service.zone || "Por confirmar")}</dd></div>
+        <div><dt>Dirección</dt><dd>${escapeHtml(service.fullAddress || "Se mostrará cuando esté disponible")}</dd></div>
+        <div><dt>Contacto</dt><dd>${escapeHtml(service.clientContactName || service.clientContactPhone || "Por confirmar")}</dd></div>
+      </dl>
+      ${service.instructions ? `<p class="service-instructions"><strong>Indicaciones:</strong> ${escapeHtml(service.instructions)}</p>` : ""}
+      <div class="service-followup-actions">
+        <button type="button" class="offer-button note" data-service-action="note" data-service-id="${escapeHtml(service.id)}">Agregar nota</button>
+        <button type="button" class="offer-button incident" data-service-action="incident" data-service-id="${escapeHtml(service.id)}">Reportar incidencia</button>
+      </div>
+      <div class="service-feedback portal-status" aria-live="polite"></div>
+    </article>`;
+  }).join("");
+
+  list.querySelectorAll("[data-service-action]").forEach((button) => {
+    button.addEventListener("click", handleServiceFollowup);
+  });
 }
 
 async function loadWorkerOperations(user) {
@@ -277,6 +320,53 @@ async function handleOfferAction(event) {
     if (auth.currentUser) await loadWorkerOperations(auth.currentUser);
   } catch (error) {
     setStatus(feedback, humanizeError(error), "error");
+    buttons.forEach((item) => { item.disabled = false; });
+  }
+}
+
+
+async function handleServiceFollowup(event) {
+  const button = event.currentTarget;
+  const serviceId = button.dataset.serviceId;
+  const action = button.dataset.serviceAction;
+  const card = button.closest("[data-service-card]");
+  const feedback = card?.querySelector(".service-feedback");
+  const buttons = card?.querySelectorAll("[data-service-action]") || [];
+
+  const promptText = action === "incident"
+    ? "Describe qué ocurrió. Esta incidencia será enviada a Operaciones Shinext."
+    : "Escribe una nota breve para dejar contexto de este servicio.";
+  const text = window.prompt(promptText);
+  if (!text || !text.trim()) return;
+
+  buttons.forEach((item) => { item.disabled = true; });
+  setStatus(
+    feedback,
+    action === "incident" ? "Enviando incidencia…" : "Guardando nota…",
+    "info",
+  );
+
+  try {
+    if (action === "incident") {
+      await reportIncident({ serviceId, description: text.trim() });
+      setStatus(
+        feedback,
+        "Incidencia enviada. Operaciones Shinext ya puede darle seguimiento.",
+        "success",
+      );
+    } else {
+      await addServiceNote({
+        serviceId,
+        text: text.trim(),
+        visibility: "worker",
+      });
+      setStatus(feedback, "Nota guardada en la bitácora del servicio.", "success");
+    }
+
+    if (auth.currentUser) await loadWorkerOperations(auth.currentUser);
+  } catch (error) {
+    setStatus(feedback, humanizeError(error), "error");
+  } finally {
     buttons.forEach((item) => { item.disabled = false; });
   }
 }
