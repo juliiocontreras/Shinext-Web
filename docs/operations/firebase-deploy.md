@@ -43,25 +43,15 @@ npm --prefix functions run build
 npm run emulators:exec
 ```
 
-The suite must pass before production deployment. It covers Firestore and Storage authorization, role boundaries, Worker Portal/CRM contracts, SEO metadata and the service lifecycle through Firebase emulators.
+The suite must pass before production deployment. Local tests use a project id prefixed with `demo-` so the Emulator Suite does not attempt production project lookups. It covers Firestore and Storage authorization, role boundaries, Worker Portal/CRM contracts, SEO metadata and the service lifecycle through Firebase emulators.
 
 ## Frontend Firebase configuration
 
-The browser client expects `window.SHINEXT_FIREBASE_CONFIG` in production. Use the normal Firebase **web app configuration** only; it is not an administrative secret.
+When served from Firebase Hosting, the browser client automatically fetches the project's public web configuration from the reserved Hosting endpoint `/__/firebase/init.json`. This keeps the same code deployable across Firebase projects without embedding project-specific values in source control.
 
-The deployment integration must expose the following fields before modules that require Firebase load:
+`window.SHINEXT_FIREBASE_CONFIG` remains available only as an explicit override for nonstandard hosting or controlled diagnostics.
 
-```js
-window.SHINEXT_FIREBASE_CONFIG = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  appId: "..."
-};
-```
-
-Do not expose Admin SDK credentials.
+Do not expose Admin SDK credentials, service-account JSON, private keys or administrative tokens.
 
 ## Deployment order
 
