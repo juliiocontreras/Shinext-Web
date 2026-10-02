@@ -1,0 +1,106 @@
+name: Firebase Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Qué desplegar"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - hosting
+          - functions
+          - rules
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Use Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install web dependencies
+        run: npm install
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions install
+
+      - name: Build Cloud Functions
+        run: npm --prefix functions run build
+
+      - name: Run Functions tests
+        run: npm --prefix functions test
+
+      - name: Run Firebase emulator suite
+        run: npm run emulators:exec
+
+      - name: Write Firebase service account
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+
+      - name: Validate production project id
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          test -n "$FIREBASE_PROJECT_ID"
+          case "$FIREBASE_PROJECT_ID" in
+            demo-*) echo "Refusing to deploy to demo project"; exit 1 ;;
+          esac
+
+      - name: Deploy all
+        if: ${{ inputs.deploy_target == 'all' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: npx firebase-tools deploy --project "$FIREBASE_PROJECT_ID"
+
+      - name: Deploy Hosting
+        if: ${{ inputs.deploy_target == 'hosting' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: npx firebase-tools deploy --only hosting --project "$FIREBASE_PROJECT_ID"
+
+      - name: Deploy Functions
+        if: ${{ inputs.deploy_target == 'functions' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: npx firebase-tools deploy --only functions --project "$FIREBASE_PROJECT_ID"
+
+      - name: Deploy rules and indexes
+        if: ${{ inputs.deploy_target == 'rules' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID"
+
+      - name: Remove credential file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
