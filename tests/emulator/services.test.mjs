@@ -58,6 +58,34 @@ before(async () => {
       workerEarning: 450,
     });
 
+    await setDoc(doc(db, "serviceNotes", "note-worker"), {
+      serviceId: "request-1",
+      authorUid: "worker-a",
+      authorType: "worker",
+      visibility: "worker",
+      text: "Nota visible",
+    });
+
+    await setDoc(doc(db, "serviceNotes", "note-internal"), {
+      serviceId: "request-1",
+      authorUid: "ops-1",
+      authorType: "collaborator",
+      visibility: "internal_shinext",
+      text: "Nota interna",
+    });
+
+    await setDoc(doc(db, "incidents", "incident-1"), {
+      serviceId: "request-1",
+      reporterUid: "worker-a",
+      status: "open",
+    });
+
+    await setDoc(doc(db, "alerts", "alert-1"), {
+      serviceId: "request-1",
+      type: "service_incident",
+      status: "open",
+    });
+
     await setDoc(doc(db, "collaborators", "ops-1"), {
       role: "operations",
       permissionGrants: [],
@@ -100,4 +128,23 @@ test("operations can read requests, offers and services", async () => {
   await assertSucceeds(getDoc(doc(opsDb, "serviceRequests", "request-1")));
   await assertSucceeds(getDoc(doc(opsDb, "serviceOffers", "offer-a")));
   await assertSucceeds(getDoc(doc(opsDb, "services", "request-1")));
+});
+
+
+test("worker can read worker-visible note and own service incident, but not internal note or alert", async () => {
+  const workerDb = env.authenticatedContext("worker-a", { role: "worker" }).firestore();
+
+  await assertSucceeds(getDoc(doc(workerDb, "serviceNotes", "note-worker")));
+  await assertFails(getDoc(doc(workerDb, "serviceNotes", "note-internal")));
+  await assertSucceeds(getDoc(doc(workerDb, "incidents", "incident-1")));
+  await assertFails(getDoc(doc(workerDb, "alerts", "alert-1")));
+});
+
+test("operations can read service notes incidents and alerts", async () => {
+  const opsDb = env.authenticatedContext("ops-1", { role: "operations" }).firestore();
+
+  await assertSucceeds(getDoc(doc(opsDb, "serviceNotes", "note-worker")));
+  await assertSucceeds(getDoc(doc(opsDb, "serviceNotes", "note-internal")));
+  await assertSucceeds(getDoc(doc(opsDb, "incidents", "incident-1")));
+  await assertSucceeds(getDoc(doc(opsDb, "alerts", "alert-1")));
 });
