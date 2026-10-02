@@ -92,13 +92,41 @@
 
       <section id="view-supplies" class="portal-view" data-view="supplies" hidden>
         <div class="section-title"><div><p>Mis insumos</p><h2>¿Qué necesitas?</h2></div></div>
-        <p class="section-helper">Elige una categoría. En la siguiente etapa podrás indicar el artículo, cantidad y una nota para Compras.</p>
+        <p class="section-helper">Elige una categoría e indica qué te hace falta. Compras Shinext recibirá tu aviso.</p>
         <div class="supply-grid">
           <button type="button" class="supply-card" data-supply-category="cleaning_products"><span aria-hidden="true">◉</span><strong>Productos de limpieza</strong><small>Químicos y consumibles</small></button>
           <button type="button" class="supply-card" data-supply-category="tools"><span aria-hidden="true">⌁</span><strong>Herramientas</strong><small>Escobas, trapeadores y equipo</small></button>
           <button type="button" class="supply-card" data-supply-category="uniform"><span aria-hidden="true">◇</span><strong>Uniforme</strong><small>Prendas o reposiciones</small></button>
         </div>
+        <form id="supply-request-form" class="supply-form" hidden>
+          <input id="supply-category" name="category" type="hidden">
+          <div class="supply-form-head">
+            <div>
+              <small>Categoría seleccionada</small>
+              <strong id="supply-category-label">Insumo</strong>
+            </div>
+            <button id="supply-form-close" class="icon-button compact" type="button">Cambiar</button>
+          </div>
+          <label>
+            ¿Qué necesitas?
+            <input name="item" required maxlength="120" placeholder="Ej. Desengrasante, trapeador, playera">
+          </label>
+          <label>
+            Cantidad aproximada
+            <input name="quantity" type="number" min="1" max="99" value="1" required inputmode="numeric">
+          </label>
+          <label>
+            Nota <small>(opcional)</small>
+            <textarea name="note" maxlength="500" rows="3" placeholder="Agrega contexto si lo necesitas"></textarea>
+          </label>
+          <label>
+            Foto <small>(opcional)</small>
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+          <button id="supply-submit" class="portal-button primary" type="submit">Enviar aviso a Compras</button>
+        </form>
         <div id="supply-status" class="portal-status" aria-live="polite"></div>
+        <div id="supply-history" class="stack-list supply-history"></div>
       </section>
     </main>
 
