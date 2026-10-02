@@ -86,8 +86,37 @@ before(async () => {
       status: "open",
     });
 
+    await setDoc(doc(db, "workerEarnings", "request-1"), {
+      serviceId: "request-1",
+      workerUid: "worker-a",
+      amount: 450,
+      currency: "MXN",
+      paymentStatus: "pending",
+    });
+
+    await setDoc(doc(db, "workerEarnings", "request-2"), {
+      serviceId: "request-2",
+      workerUid: "worker-b",
+      amount: 520,
+      currency: "MXN",
+      paymentStatus: "paid",
+    });
+
+    await setDoc(doc(db, "payments", "payment-1"), {
+      serviceId: "request-1",
+      workerUid: "worker-a",
+      amount: 450,
+      status: "pending",
+    });
+
     await setDoc(doc(db, "collaborators", "ops-1"), {
       role: "operations",
+      permissionGrants: [],
+      permissionRevokes: [],
+    });
+
+    await setDoc(doc(db, "collaborators", "accounting-1"), {
+      role: "accounting",
       permissionGrants: [],
       permissionRevokes: [],
     });
@@ -147,4 +176,31 @@ test("operations can read service notes incidents and alerts", async () => {
   await assertSucceeds(getDoc(doc(opsDb, "serviceNotes", "note-internal")));
   await assertSucceeds(getDoc(doc(opsDb, "incidents", "incident-1")));
   await assertSucceeds(getDoc(doc(opsDb, "alerts", "alert-1")));
+});
+
+
+test("worker reads only their own earning and cannot read internal payments", async () => {
+  const workerDb = env.authenticatedContext("worker-a", { role: "worker" }).firestore();
+
+  await assertSucceeds(getDoc(doc(workerDb, "workerEarnings", "request-1")));
+  await assertFails(getDoc(doc(workerDb, "workerEarnings", "request-2")));
+  await assertFails(getDoc(doc(workerDb, "payments", "payment-1")));
+});
+
+test("worker cannot mutate earning or payment status directly", async () => {
+  const workerDb = env.authenticatedContext("worker-a", { role: "worker" }).firestore();
+
+  await assertFails(
+    updateDoc(doc(workerDb, "workerEarnings", "request-1"), {
+      paymentStatus: "paid",
+    }),
+  );
+});
+
+test("accounting can read earnings and payments but not service operations by default", async () => {
+  const accountingDb = env.authenticatedContext("accounting-1", { role: "accounting" }).firestore();
+
+  await assertSucceeds(getDoc(doc(accountingDb, "workerEarnings", "request-1")));
+  await assertSucceeds(getDoc(doc(accountingDb, "payments", "payment-1")));
+  await assertFails(getDoc(doc(accountingDb, "serviceRequests", "request-1")));
 });
