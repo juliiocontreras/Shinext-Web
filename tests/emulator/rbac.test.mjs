@@ -13,7 +13,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 
-const projectId = process.env.GCLOUD_PROJECT || "shinext-local";
+const projectId = process.env.GCLOUD_PROJECT || "demo-shinext-local";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
 const [host, portText] = emulatorHost.split(":");
 const port = Number(portText || 8080);
