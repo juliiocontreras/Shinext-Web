@@ -73,11 +73,6 @@ function renderBanners() {
 renderBanners();
 
 async function loadManagedBanners() {
-  const enabled =
-    ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
-    Boolean(window.SHINEXT_FIREBASE_CONFIG);
-  if (!enabled) return;
-
   try {
     const { db } = await import('/assets/js/firebase-client.js');
     const { collection, getDocs, query, where } = await import(
