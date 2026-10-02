@@ -2,8 +2,52 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Worker expediente and operational attachments are private by default.
-    // Later tasks will add narrow role- and owner-based paths.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return signedIn() ? request.auth.token.get("role", null) : null;
+    }
+
+    function application(applicationId) {
+      return firestore.get(
+        /databases/(default)/documents/workerApplications/$(applicationId)
+      );
+    }
+
+    function ownsApplication(applicationId) {
+      return signedIn()
+        && application(applicationId).data.ownerUid == request.auth.uid;
+    }
+
+    function applicantMayEdit(applicationId) {
+      return ownsApplication(applicationId)
+        && application(applicationId).data.status in [
+          "received",
+          "information_pending"
+        ];
+    }
+
+    function isRecruitmentReviewer() {
+      return role() in ["director", "recruitment"];
+    }
+
+    match /worker-applications/{applicationId}/{documentType}/{fileName} {
+      allow read: if ownsApplication(applicationId) || isRecruitmentReviewer();
+
+      allow create, update: if applicantMayEdit(applicationId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType in [
+          "application/pdf",
+          "image/jpeg",
+          "image/png"
+        ]
+        && documentType in ["identity", "address", "studies"];
+
+      allow delete: if applicantMayEdit(applicationId) || role() == "director";
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
