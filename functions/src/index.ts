@@ -4,6 +4,8 @@ export { approveWorker } from "./recruitment/approveWorker.js";
 export { updateApplication } from "./recruitment/updateApplication.js";
 export { createOffer } from "./services/createOffer.js";
 export { respondToOffer } from "./services/respondToOffer.js";
+export { addServiceNote } from "./services/addServiceNote.js";
+export { reportIncident } from "./services/reportIncident.js";
 
 export const foundationHealth = onCall(() => ({
   ok: true,
