@@ -7,6 +7,14 @@ if (year) year.textContent = new Date().getFullYear();
 
 window.dataLayer = window.dataLayer || [];
 function track(name, params = {}) { window.dataLayer.push({ event: name, ...params }); }
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 
 document.querySelectorAll('[data-conversion]').forEach((element) => {
   element.addEventListener('click', () => track(element.dataset.conversion, { page_location: window.location.href }));
@@ -51,7 +59,7 @@ function renderBanners() {
     link.href = banner.href || '#';
     link.dataset.bannerId = banner.id;
     if (/^https:\/\//.test(link.href)) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
-    link.innerHTML = `<div class="campaign-banner-copy"><span class="campaign-banner-kicker">${banner.type === 'distributor' ? 'Alianzas Shinext' : banner.type === 'content' ? 'Guía Shinext' : 'Promoción'}</span><strong>${banner.title}</strong><span>${banner.text}</span><b>${banner.cta || 'Conocer más'} →</b></div>`;
+    link.innerHTML = `<div class="campaign-banner-copy"><span class="campaign-banner-kicker">${banner.type === 'distributor' ? 'Alianzas Shinext' : banner.type === 'content' ? 'Guía Shinext' : 'Promoción'}</span><strong>${escapeHtml(banner.title)}</strong><span>${escapeHtml(banner.text)}</span><b>${escapeHtml(banner.cta || 'Conocer más')} →</b></div>`;
     if (banner.image) {
       const image = document.createElement('img');
       image.src = banner.image; image.alt = ''; image.loading = 'lazy';
@@ -63,6 +71,46 @@ function renderBanners() {
   });
 }
 renderBanners();
+
+async function loadManagedBanners() {
+  const enabled =
+    ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
+    Boolean(window.SHINEXT_FIREBASE_CONFIG);
+  if (!enabled) return;
+
+  try {
+    const { db } = await import('/assets/js/firebase-client.js');
+    const { collection, getDocs, query, where } = await import(
+      'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js'
+    );
+    const snapshot = await getDocs(
+      query(
+        collection(db, 'bannerCampaigns'),
+        where('active', '==', true),
+        where('public', '==', true),
+      ),
+    );
+    if (snapshot.empty) return;
+
+    const now = Date.now();
+    const managed = snapshot.docs
+      .map((document) => ({ id: document.id, ...document.data() }))
+      .filter((banner) => {
+        const start = banner.startAt?.toDate?.()?.getTime?.() ?? null;
+        const end = banner.endAt?.toDate?.()?.getTime?.() ?? null;
+        return (!start || start <= now) && (!end || end >= now);
+      })
+      .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+
+    if (managed.length) {
+      window.ShinextBanners = managed;
+      renderBanners();
+    }
+  } catch {
+    // Keep the local campaign fallback if Firebase content is unavailable.
+  }
+}
+loadManagedBanners();
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault(); deferredPrompt = event;
