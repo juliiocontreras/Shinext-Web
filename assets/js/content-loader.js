@@ -1,12 +1,6 @@
-const canUseFirebase =
-  ["localhost", "127.0.0.1"].includes(window.location.hostname) ||
-  Boolean(window.SHINEXT_FIREBASE_CONFIG);
-
-if (canUseFirebase) {
-  loadManagedArticleMedia().catch(() => {
-    // Static article remains fully usable and indexable if managed media fails.
-  });
-}
+loadManagedArticleMedia().catch(() => {
+  // Static article remains fully usable and indexable if managed media fails.
+});
 
 async function loadManagedArticleMedia() {
   const { db } = await import("/assets/js/firebase-client.js");
