@@ -276,3 +276,55 @@ button { cursor: pointer; }
   .supply-card { grid-template-columns: 1fr; grid-template-areas: "icon" "title" "small"; text-align: center; justify-items: center; min-height: 170px; }
   .portal-nav { width: min(620px, calc(100% - 24px)); left: 50%; right: auto; transform: translateX(-50%); bottom: 12px; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding-bottom: 7px; }
 }
+
+.stack-list { display: grid; gap: 14px; margin-top: 14px; }
+.worker-service-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 10px 28px rgba(16,38,68,.06);
+}
+.service-card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.service-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.status-pending { background: #fff6cc; color: #7c5b00; }
+.status-accepted { background: #e8f7ee; color: var(--success); }
+.status-rejected, .status-cancelled { background: #fff0ef; color: var(--danger); }
+.status-covered { background: #eef3f8; color: #596579; }
+.service-pay { color: var(--navy); font-size: 20px; }
+.worker-service-card h3 { margin: 15px 0 13px; font-size: 20px; }
+.service-details { display: grid; gap: 10px; margin: 0; }
+.service-details div {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.service-details dt { color: var(--muted); font-size: 13px; font-weight: 800; }
+.service-details dd { margin: 0; font-size: 14px; font-weight: 700; }
+.service-actions { display: grid; grid-template-columns: 1.35fr 1fr; gap: 10px; margin-top: 16px; }
+.offer-button {
+  min-height: 48px;
+  border-radius: 13px;
+  font-weight: 900;
+  border: 1px solid var(--line);
+}
+.offer-button.accept { border-color: var(--navy); color: white; background: var(--navy); }
+.offer-button.reject { color: var(--ink); background: white; }
+.offer-button:disabled { opacity: .55; cursor: wait; }
+
+@media (min-width: 650px) {
+  .service-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
