@@ -39,5 +39,8 @@ jobs:
       - name: Build Cloud Functions
         run: npm --prefix functions run build
 
+      - name: Run Functions unit tests
+        run: npm --prefix functions test
+
       - name: Run Firebase emulator tests
         run: npm run emulators:exec
