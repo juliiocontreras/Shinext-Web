@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const projectId = process.env.GCLOUD_PROJECT || "shinext-local";
+const projectId = process.env.GCLOUD_PROJECT || "demo-shinext-local";
 const host = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
 const base = `http://${host}/v1/projects/${projectId}/databases/(default)/documents`;
 
