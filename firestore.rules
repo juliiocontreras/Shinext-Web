@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Baseline: no client data access until each collection is explicitly
+    // authorized by a later implementation task.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
