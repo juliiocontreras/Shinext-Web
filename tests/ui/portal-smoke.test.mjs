@@ -47,3 +47,12 @@ test("confirmed services expose note and incident actions", () => {
   assert.match(portalJs, /data-service-action="note"/);
   assert.match(portalJs, /data-service-action="incident"/);
 });
+
+
+test("worker earnings dashboard reads only worker-owned earnings and renders payment state", () => {
+  assert.match(portalJs, /collection\(db, "workerEarnings"\)/);
+  assert.match(portalJs, /where\("workerUid", "==", user\.uid\)/);
+  assert.match(portalJs, /paymentStatus === "paid"/);
+  assert.match(portalJs, /#earning-total/);
+  assert.match(portalJs, /#earning-pending/);
+});
