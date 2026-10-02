@@ -58,5 +58,12 @@ export const saveMediaEmbed=onCall(async(request)=>{
   });
 
   await writeAudit({action:"content.media_created",actorUid:request.auth.uid,actorRole:role,targetType:"mediaEmbed",targetId:ref.id,metadata:{articleSlug,provider:normalized.provider}});
-  return {ok:true,id:ref.id,...normalized};
+  return {
+    ok: true,
+    recordId: ref.id,
+    provider: normalized.provider,
+    mediaId: normalized.id,
+    canonicalUrl: normalized.canonicalUrl,
+    embedUrl: normalized.embedUrl,
+  };
 });
