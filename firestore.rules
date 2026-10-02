@@ -72,6 +72,20 @@ service cloud.firestore {
       );
     }
 
+    function canViewFinancialSummary() {
+      return permitted(
+        "view_financial_summary",
+        role() == "accounting"
+      );
+    }
+
+    function canManagePayments() {
+      return permitted(
+        "manage_payments",
+        role() == "accounting"
+      );
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isDirector());
       allow create, update, delete: if isDirector();
@@ -179,6 +193,22 @@ service cloud.firestore {
 
     match /alerts/{alertId} {
       allow read: if canManageServices() || isDirector();
+      allow create, update, delete: if false;
+    }
+
+    match /workerEarnings/{earningId} {
+      allow read: if signedIn()
+        && (
+          resource.data.workerUid == request.auth.uid
+          || canViewFinancialSummary()
+          || canManagePayments()
+        );
+      // Generated and updated only through privileged backend operations.
+      allow create, update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if canViewFinancialSummary() || canManagePayments();
       allow create, update, delete: if false;
     }
 
