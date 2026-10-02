@@ -212,6 +212,44 @@ function renderOffers(offers) {
   });
 }
 
+function renderEarnings(earnings) {
+  const total = earnings.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const paid = earnings
+    .filter((item) => item.paymentStatus === "paid")
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const pending = total - paid;
+
+  const totalNode = document.querySelector("#earning-total");
+  const paidNode = document.querySelector("#earning-paid");
+  const pendingNode = document.querySelector("#earning-pending");
+  const homePending = document.querySelector("#pending-earnings");
+  const empty = document.querySelector("#earnings-empty");
+  const list = document.querySelector("#earnings-list");
+
+  if (totalNode) totalNode.textContent = formatMoney(total);
+  if (paidNode) paidNode.textContent = formatMoney(paid);
+  if (pendingNode) pendingNode.textContent = formatMoney(pending);
+  if (homePending) homePending.textContent = formatMoney(pending);
+
+  if (!list || !empty) return;
+
+  empty.hidden = earnings.length > 0;
+  list.innerHTML = earnings.map((earning) => {
+    const paidStatus = earning.paymentStatus === "paid";
+    return `<article class="earning-row">
+      <div>
+        <small>Servicio</small>
+        <strong>${escapeHtml(earning.serviceId || earning.id)}</strong>
+      </div>
+      <div>
+        <small>Estado</small>
+        <span class="earning-status ${paidStatus ? "paid" : "pending"}">${paidStatus ? "Pagado" : "Pendiente"}</span>
+      </div>
+      <strong class="earning-amount">${formatMoney(earning.amount)}</strong>
+    </article>`;
+  }).join("");
+}
+
 function renderServices(services) {
   const list = document.querySelector("#confirmed-service-list");
   const upcoming = services
@@ -271,9 +309,10 @@ function renderServices(services) {
 }
 
 async function loadWorkerOperations(user) {
-  const [offersSnapshot, servicesSnapshot] = await Promise.all([
+  const [offersSnapshot, servicesSnapshot, earningsSnapshot] = await Promise.all([
     getDocs(query(collection(db, "serviceOffers"), where("workerUid", "==", user.uid))),
     getDocs(query(collection(db, "services"), where("assignedWorkerUid", "==", user.uid))),
+    getDocs(query(collection(db, "workerEarnings"), where("workerUid", "==", user.uid))),
   ]);
 
   const offers = offersSnapshot.docs
@@ -289,8 +328,17 @@ async function loadWorkerOperations(user) {
     ...document.data(),
   }));
 
+  const earnings = earningsSnapshot.docs
+    .map((document) => ({ id: document.id, ...document.data() }))
+    .sort((a, b) => {
+      const aDate = dateFrom(a.generatedAt)?.getTime() || 0;
+      const bDate = dateFrom(b.generatedAt)?.getTime() || 0;
+      return bDate - aDate;
+    });
+
   renderOffers(offers);
   renderServices(services);
+  renderEarnings(earnings);
 }
 
 async function handleOfferAction(event) {
