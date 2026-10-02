@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#062d70">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Acceso Trabajadores | Shinext</title>
+  <link rel="icon" href="/brand/shinext-logo-original.webp">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body class="portal-body portal-login-body" data-page="login">
+  <main class="login-shell">
+    <a class="portal-brand" href="/" aria-label="Volver a Shinext">
+      <img src="/brand/shinext-logo-original.webp" alt="Shinext">
+    </a>
+
+    <section class="login-card" aria-labelledby="login-title">
+      <p class="portal-kicker">Trabajadores Shinext</p>
+      <h1 id="login-title">Tu portal de trabajo</h1>
+      <p class="login-lead">Consulta servicios, calendario, ganancias e insumos desde un solo lugar.</p>
+
+      <form id="worker-login-form" class="login-form">
+        <label>
+          Correo electrónico
+          <input id="worker-email" name="email" type="email" autocomplete="email" inputmode="email" required>
+        </label>
+        <label>
+          Contraseña
+          <input id="worker-password" name="password" type="password" autocomplete="current-password" required minlength="6">
+        </label>
+
+        <div id="login-status" class="portal-status" role="status" aria-live="polite"></div>
+        <button id="worker-login-button" class="portal-button primary" type="submit">Entrar a mi portal</button>
+      </form>
+
+      <p class="login-help">El acceso se habilita después de que Reclutamiento aprueba tu expediente. Si aún estás en proceso, espera la confirmación de Shinext.</p>
+      <a class="portal-secondary-link" href="/trabaja/">¿Aún no te registras? Envía tu solicitud</a>
+    </section>
+  </main>
+
+  <script type="module" src="/portal/portal.js"></script>
+</body>
+</html>
