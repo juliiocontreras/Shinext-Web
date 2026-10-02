@@ -77,3 +77,11 @@ test("worker can progress an assigned service in simple ordered steps", () => {
   assert.match(portalJs, /Finalizar servicio/);
   assert.match(portalJs, /data-service-progress/);
 });
+
+
+test("worker portal renders a real calendar and completed service history", () => {
+  assert.match(portalHtml, /id="calendar-list"/);
+  assert.match(portalHtml, /id="completed-service-list"/);
+  assert.match(portalJs, /function renderCalendar/);
+  assert.match(portalJs, /function renderCompletedServices/);
+});
