@@ -4,6 +4,8 @@ import { readFile } from "node:fs/promises";
 
 const client = await readFile(new URL("../../assets/js/firebase-client.js", import.meta.url), "utf8");
 const serviceWorker = await readFile(new URL("../../sw.js", import.meta.url), "utf8");
+const appJs = await readFile(new URL("../../app.js", import.meta.url), "utf8");
+const contentLoader = await readFile(new URL("../../assets/js/content-loader.js", import.meta.url), "utf8");
 
 test("production Firebase config comes from Hosting reserved init JSON", () => {
   assert.match(client, /fetch\("\/__\/firebase\/init\.json"/);
@@ -19,4 +21,12 @@ test("local Firebase development uses a demo project id", () => {
 test("service worker never intercepts Firebase reserved Hosting namespace", () => {
   assert.match(serviceWorker, /pathname\.startsWith\('\/__\/'\)/);
   assert.match(serviceWorker, /return;/);
+});
+
+
+test("public managed content attempts Firebase on Hosting and keeps fallbacks on failure", () => {
+  assert.match(appJs, /loadManagedBanners\(\)/);
+  assert.doesNotMatch(appJs, /Boolean\(window\.SHINEXT_FIREBASE_CONFIG\)/);
+  assert.match(contentLoader, /loadManagedArticleMedia\(\)\.catch/);
+  assert.doesNotMatch(contentLoader, /canUseFirebase/);
 });
