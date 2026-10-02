@@ -7,10 +7,11 @@ import { operationsView } from "/crm/modules/operations.js";
 import { accountingView } from "/crm/modules/accounting.js";
 import { purchasingView } from "/crm/modules/purchasing.js";
 import { salesView } from "/crm/modules/sales.js";
+import { contentView } from "/crm/modules/content.js";
 
 const page=document.body.dataset.crmPage;
 const roleModules={
- director:["dashboard","recruitment","operations","accounting","purchasing","sales"],
+ director:["dashboard","recruitment","operations","accounting","purchasing","sales","content"],
  recruitment:["dashboard","recruitment"],
  operations:["dashboard","operations"],
  accounting:["dashboard","accounting"],
@@ -23,7 +24,8 @@ const moduleDefs={
  operations:{label:"Operaciones",view:operationsView},
  accounting:{label:"Contabilidad",view:accountingView},
  purchasing:{label:"Compras",view:purchasingView},
- sales:{label:"Ventas",view:salesView}
+ sales:{label:"Ventas",view:salesView},
+ content:{label:"Contenido",view:contentView}
 };
 
 function status(el,msg,kind=""){if(!el)return;el.textContent=msg;el.dataset.kind=kind;}
@@ -39,7 +41,7 @@ function effectiveModules(role,profile){
  const allowed=new Set(roleModules[role]||[]);
  const grants=Array.isArray(profile.permissionGrants)?profile.permissionGrants:[];
  const revokes=Array.isArray(profile.permissionRevokes)?profile.permissionRevokes:[];
- const map={review_applications:"recruitment",approve_applications:"recruitment",manage_services:"operations",view_financial_summary:"accounting",manage_payments:"accounting",manage_supplies:"purchasing",manage_inventory:"purchasing",manage_sales:"sales"};
+ const map={review_applications:"recruitment",approve_applications:"recruitment",manage_services:"operations",view_financial_summary:"accounting",manage_payments:"accounting",manage_supplies:"purchasing",manage_inventory:"purchasing",manage_sales:"sales",manage_content:"content"};
  grants.forEach(p=>{if(map[p])allowed.add(map[p]);});
  revokes.forEach(p=>{if(map[p])allowed.delete(map[p]);});
  allowed.add("dashboard");
@@ -63,6 +65,7 @@ async function loadModule(key){
      if(list)list.innerHTML='<div class="crm-empty">No tienes acceso a esta información o no pudo cargarse.</div>';
    }
  }
+ if(typeof view.mount==="function") await view.mount();
 }
 async function initLogin(){
  const form=document.querySelector("#crm-login-form"),msg=document.querySelector("#crm-login-status"),btn=document.querySelector("#crm-login-button");
