@@ -26,6 +26,7 @@ const addServiceNote = httpsCallable(functions, "addServiceNote");
 const reportIncident = httpsCallable(functions, "reportIncident");
 const createSupplyRequest = httpsCallable(functions, "createSupplyRequest");
 const updateSupplyRequest = httpsCallable(functions, "updateSupplyRequest");
+const updateServiceStatus = httpsCallable(functions, "updateServiceStatus");
 
 function setStatus(element, message, kind = "") {
   if (!element) return;
@@ -321,6 +322,12 @@ function renderServices(services) {
       incident: "Incidencia reportada",
     }[service.status] || "Activo";
 
+    const progress = {
+      scheduled: { next: "en_route", label: "Voy en camino" },
+      en_route: { next: "started", label: "Iniciar servicio" },
+      started: { next: "completed", label: "Finalizar servicio" },
+    }[service.status] || null;
+
     return `<article class="worker-service-card confirmed-card" data-service-card="${escapeHtml(service.id)}">
       <div class="service-card-top">
         <span class="service-status status-${escapeHtml(service.status)}">${statusLabel}</span>
@@ -334,6 +341,7 @@ function renderServices(services) {
         <div><dt>Contacto</dt><dd>${escapeHtml(service.clientContactName || service.clientContactPhone || "Por confirmar")}</dd></div>
       </dl>
       ${service.instructions ? `<p class="service-instructions"><strong>Indicaciones:</strong> ${escapeHtml(service.instructions)}</p>` : ""}
+      ${progress ? `<button type="button" class="service-progress-button" data-service-progress="${progress.next}" data-service-id="${escapeHtml(service.id)}">${progress.label}</button>` : ""}
       <div class="service-followup-actions">
         <button type="button" class="offer-button note" data-service-action="note" data-service-id="${escapeHtml(service.id)}">Agregar nota</button>
         <button type="button" class="offer-button incident" data-service-action="incident" data-service-id="${escapeHtml(service.id)}">Reportar incidencia</button>
@@ -344,6 +352,9 @@ function renderServices(services) {
 
   list.querySelectorAll("[data-service-action]").forEach((button) => {
     button.addEventListener("click", handleServiceFollowup);
+  });
+  list.querySelectorAll("[data-service-progress]").forEach((button) => {
+    button.addEventListener("click", handleServiceProgress);
   });
 }
 
@@ -421,6 +432,40 @@ async function handleOfferAction(event) {
   }
 }
 
+
+async function handleServiceProgress(event) {
+  const button = event.currentTarget;
+  const serviceId = button.dataset.serviceId;
+  const nextStatus = button.dataset.serviceProgress;
+  const card = button.closest("[data-service-card]");
+  const feedback = card?.querySelector(".service-feedback");
+
+  const confirmation = {
+    en_route: "¿Confirmas que vas en camino al servicio?",
+    started: "¿Confirmas que ya iniciaste el servicio?",
+    completed: "¿Confirmas que terminaste el servicio?",
+  }[nextStatus] || "¿Confirmas este cambio?";
+
+  if (!window.confirm(confirmation)) return;
+
+  button.disabled = true;
+  setStatus(feedback, "Actualizando servicio…", "info");
+
+  try {
+    await updateServiceStatus({ serviceId, status: nextStatus });
+    setStatus(
+      feedback,
+      nextStatus === "completed"
+        ? "Servicio marcado como finalizado. Shinext validará el cierre y tu ganancia."
+        : "Estado actualizado.",
+      "success",
+    );
+    if (auth.currentUser) await loadWorkerOperations(auth.currentUser);
+  } catch (error) {
+    setStatus(feedback, humanizeError(error), "error");
+    button.disabled = false;
+  }
+}
 
 async function handleServiceFollowup(event) {
   const button = event.currentTarget;
