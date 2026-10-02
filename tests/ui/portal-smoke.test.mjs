@@ -28,3 +28,14 @@ test("login uses email and password authentication", () => {
   assert.match(loginHtml, /type="password"/);
   assert.match(portalJs, /signInWithEmailAndPassword/);
 });
+
+test("portal connects worker offers to callable accept/reject flow", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "respondToOffer"\)/);
+  assert.match(portalJs, /where\("workerUid", "==", user\.uid\)/);
+  assert.match(portalJs, /data-offer-action="accept"/);
+  assert.match(portalJs, /data-offer-action="reject"/);
+});
+
+test("portal never renders client price or Shinext margin in offer cards", () => {
+  assert.doesNotMatch(portalJs, /clientPrice|shinextMargin|marginShinext/);
+});
