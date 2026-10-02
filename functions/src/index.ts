@@ -10,6 +10,8 @@ export { closeService } from "./finance/closeService.js";
 export { markWorkerPayment } from "./finance/markWorkerPayment.js";
 export { createSupplyRequest } from "./supplies/createSupplyRequest.js";
 export { updateSupplyRequest } from "./supplies/updateSupplyRequest.js";
+export { saveMediaEmbed } from "./content/saveMediaEmbed.js";
+export { saveBannerCampaign } from "./content/saveBannerCampaign.js";
 
 export const foundationHealth = onCall(() => ({
   ok: true,
