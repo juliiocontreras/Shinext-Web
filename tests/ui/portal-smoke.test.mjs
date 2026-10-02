@@ -68,3 +68,12 @@ test("worker supply form connects categories, callable workflow and optional pho
   assert.match(portalJs, /uploadBytes/);
   assert.match(portalJs, /collection\(db, "supplyRequests"\)/);
 });
+
+
+test("worker can progress an assigned service in simple ordered steps", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "updateServiceStatus"\)/);
+  assert.match(portalJs, /Voy en camino/);
+  assert.match(portalJs, /Iniciar servicio/);
+  assert.match(portalJs, /Finalizar servicio/);
+  assert.match(portalJs, /data-service-progress/);
+});
