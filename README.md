@@ -37,7 +37,9 @@ También puede ejecutarse la suite en una sola operación:
 npm run emulators:exec
 ```
 
-El proyecto local usa `shinext-local`. Para conectar un proyecto Firebase real, copia `.firebaserc.example` a `.firebaserc` y reemplaza el identificador solo en tu entorno local. `.firebaserc` no se versiona.
+El proyecto local usa `demo-shinext-local` para impedir llamadas accidentales a recursos reales. Para conectar un proyecto Firebase real, copia `.firebaserc.example` a `.firebaserc` y reemplaza el identificador solo en tu entorno local. `.firebaserc` no se versiona.
+
+Cuando la app se sirve desde Firebase Hosting, el cliente web obtiene automáticamente la configuración pública del proyecto desde `/__/firebase/init.json`. No es necesario versionar ni insertar manualmente la configuración web de Firebase.
 
 ## Seguridad
 
