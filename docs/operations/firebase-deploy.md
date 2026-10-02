@@ -123,3 +123,19 @@ For rules or Functions, redeploy the previous known-good Git commit. Do not manu
 ## Migration note
 
 Netlify configuration is legacy transition material. Firebase Hosting becomes authoritative only after the real Firebase project is connected, CI is green, the production smoke checks pass and the public domain is confirmed.
+
+
+## GitHub Actions production deployment
+
+The repository includes a manual workflow at `.github/workflows/firebase-deploy.yml`.
+
+Before the first production deploy, configure the GitHub **production** environment with:
+
+- Repository/environment variable `FIREBASE_PROJECT_ID`: the real Shinext Firebase project id.
+- Environment secret `FIREBASE_SERVICE_ACCOUNT_JSON`: JSON credentials for a dedicated deployment service account with only the Firebase/GCP permissions required to deploy Hosting, Firestore rules/indexes, Storage rules and Cloud Functions.
+
+The workflow always rebuilds and runs the automated test suite before any deployment. It rejects project ids starting with `demo-`.
+
+Run it from **Actions → Firebase Production Deploy → Run workflow** and choose `all` for the first deployment. After the first production verification, the narrower `hosting`, `functions`, or `rules` targets may be used when appropriate.
+
+Prefer short-lived federation credentials in the future if Shinext adopts Google Cloud Workload Identity Federation; the current service-account secret is an explicit first-release deployment mechanism and must remain inside the protected GitHub production environment.
