@@ -2,8 +2,98 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Baseline: no client data access until each collection is explicitly
-    // authorized by a later implementation task.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return signedIn() ? request.auth.token.role : null;
+    }
+
+    function isDirector() {
+      return role() == "director";
+    }
+
+    function collaboratorPath() {
+      return /databases/$(database)/documents/collaborators/$(request.auth.uid);
+    }
+
+    function collaboratorExists() {
+      return signedIn() && exists(collaboratorPath());
+    }
+
+    function collaborator() {
+      return get(collaboratorPath()).data;
+    }
+
+    function hasGrant(permission) {
+      return collaboratorExists()
+        && collaborator().permissionGrants is list
+        && permission in collaborator().permissionGrants;
+    }
+
+    function hasRevoke(permission) {
+      return collaboratorExists()
+        && collaborator().permissionRevokes is list
+        && permission in collaborator().permissionRevokes;
+    }
+
+    function permitted(permission, baseAllowed) {
+      return signedIn()
+        && !hasRevoke(permission)
+        && (isDirector() || hasGrant(permission) || baseAllowed);
+    }
+
+    function canViewWorkers() {
+      return permitted(
+        "view_workers",
+        role() == "recruitment" || role() == "operations"
+      );
+    }
+
+    function canReviewApplications() {
+      return permitted(
+        "review_applications",
+        role() == "recruitment"
+      );
+    }
+
+    function canApproveApplications() {
+      return permitted(
+        "approve_applications",
+        role() == "recruitment"
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isDirector());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /collaborators/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isDirector());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /workers/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || canViewWorkers());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /workerApplications/{applicationId} {
+      allow read: if canReviewApplications() || canApproveApplications();
+      // Candidate submission rules are intentionally added in Task 3.
+      allow create: if false;
+      allow update: if canReviewApplications() || canApproveApplications();
+      allow delete: if isDirector();
+    }
+
+    match /auditLog/{entryId} {
+      allow read: if permitted("view_audit", false);
+      // Audit entries are server-only through Admin SDK / Cloud Functions.
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
