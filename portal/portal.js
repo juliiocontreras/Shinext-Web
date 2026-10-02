@@ -1,4 +1,4 @@
-import { auth, db, functions } from "/assets/js/firebase-client.js";
+import { auth, db, functions, storage } from "/assets/js/firebase-client.js";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -15,11 +15,17 @@ import {
 import {
   httpsCallable,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-functions.js";
+import {
+  ref as storageRef,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
 const page = document.body.dataset.page;
 const respondToOffer = httpsCallable(functions, "respondToOffer");
 const addServiceNote = httpsCallable(functions, "addServiceNote");
 const reportIncident = httpsCallable(functions, "reportIncident");
+const createSupplyRequest = httpsCallable(functions, "createSupplyRequest");
+const updateSupplyRequest = httpsCallable(functions, "updateSupplyRequest");
 
 function setStatus(element, message, kind = "") {
   if (!element) return;
@@ -250,6 +256,39 @@ function renderEarnings(earnings) {
   }).join("");
 }
 
+function renderSupplyRequests(requests) {
+  const list = document.querySelector("#supply-history");
+  if (!list) return;
+
+  if (!requests.length) {
+    list.replaceChildren();
+    return;
+  }
+
+  const categoryLabel = {
+    cleaning_products: "Productos de limpieza",
+    tools: "Herramientas",
+    uniform: "Uniforme",
+  };
+
+  const statusLabel = {
+    reported: "Reportado",
+    reviewed: "Revisado",
+    preparing_purchasing: "Preparando / comprando",
+    ready_for_delivery: "Listo para entrega",
+    delivered: "Entregado",
+  };
+
+  list.innerHTML = requests.map((item) => `<article class="supply-history-row">
+    <div>
+      <small>${escapeHtml(categoryLabel[item.category] || "Insumo")}</small>
+      <strong>${escapeHtml(item.item || "Solicitud")}</strong>
+      <span>Cantidad: ${Number(item.quantity || 1)}</span>
+    </div>
+    <span class="supply-history-status status-${escapeHtml(item.status || "reported")}">${escapeHtml(statusLabel[item.status] || "Reportado")}</span>
+  </article>`).join("");
+}
+
 function renderServices(services) {
   const list = document.querySelector("#confirmed-service-list");
   const upcoming = services
@@ -309,10 +348,11 @@ function renderServices(services) {
 }
 
 async function loadWorkerOperations(user) {
-  const [offersSnapshot, servicesSnapshot, earningsSnapshot] = await Promise.all([
+  const [offersSnapshot, servicesSnapshot, earningsSnapshot, suppliesSnapshot] = await Promise.all([
     getDocs(query(collection(db, "serviceOffers"), where("workerUid", "==", user.uid))),
     getDocs(query(collection(db, "services"), where("assignedWorkerUid", "==", user.uid))),
     getDocs(query(collection(db, "workerEarnings"), where("workerUid", "==", user.uid))),
+    getDocs(query(collection(db, "supplyRequests"), where("workerUid", "==", user.uid))),
   ]);
 
   const offers = offersSnapshot.docs
@@ -336,9 +376,18 @@ async function loadWorkerOperations(user) {
       return bDate - aDate;
     });
 
+  const supplies = suppliesSnapshot.docs
+    .map((document) => ({ id: document.id, ...document.data() }))
+    .sort((a, b) => {
+      const aDate = dateFrom(a.createdAt)?.getTime() || 0;
+      const bDate = dateFrom(b.createdAt)?.getTime() || 0;
+      return bDate - aDate;
+    });
+
   renderOffers(offers);
   renderServices(services);
   renderEarnings(earnings);
+  renderSupplyRequests(supplies);
 }
 
 async function handleOfferAction(event) {
@@ -455,11 +504,82 @@ async function initPortal() {
     button.addEventListener("click", () => setView(button.dataset.goView));
   });
 
+  const supplyForm = document.querySelector("#supply-request-form");
+  const supplyCategoryInput = document.querySelector("#supply-category");
+  const supplyCategoryLabel = document.querySelector("#supply-category-label");
+  const supplyStatus = document.querySelector("#supply-status");
+  const supplySubmit = document.querySelector("#supply-submit");
+  const supplyLabels = {
+    cleaning_products: "Productos de limpieza",
+    tools: "Herramientas",
+    uniform: "Uniforme",
+  };
+
   document.querySelectorAll("[data-supply-category]").forEach((button) => {
     button.addEventListener("click", () => {
-      const status = document.querySelector("#supply-status");
-      setStatus(status, "La solicitud detallada de insumos se habilitará en la siguiente entrega.", "info");
+      const category = button.dataset.supplyCategory;
+      if (supplyCategoryInput) supplyCategoryInput.value = category;
+      if (supplyCategoryLabel) supplyCategoryLabel.textContent = supplyLabels[category] || "Insumo";
+      if (supplyForm) supplyForm.hidden = false;
+      setStatus(supplyStatus, "");
+      supplyForm?.querySelector('input[name="item"]')?.focus();
     });
+  });
+
+  document.querySelector("#supply-form-close")?.addEventListener("click", () => {
+    if (supplyForm) supplyForm.hidden = true;
+    if (supplyCategoryInput) supplyCategoryInput.value = "";
+    setStatus(supplyStatus, "");
+  });
+
+  supplyForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!auth.currentUser) return;
+
+    const category = String(supplyForm.category.value || "");
+    const item = String(supplyForm.item.value || "").trim();
+    const quantity = Number(supplyForm.quantity.value || 1);
+    const note = String(supplyForm.note.value || "").trim();
+    const photo = supplyForm.photo.files?.[0] || null;
+
+    if (supplySubmit) supplySubmit.disabled = true;
+    setStatus(supplyStatus, "Enviando aviso a Compras…", "info");
+
+    try {
+      const result = await createSupplyRequest({ category, item, quantity, note });
+      const requestId = result.data.requestId;
+
+      if (photo) {
+        if (photo.size > 8 * 1024 * 1024) {
+          throw new Error("La foto supera el máximo de 8 MB.");
+        }
+
+        const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `supply-requests/${auth.currentUser.uid}/${requestId}/evidence.${extension}`;
+        await uploadBytes(storageRef(storage, path), photo, {
+          contentType: photo.type,
+        });
+        await updateSupplyRequest({
+          requestId,
+          action: "attach_photo",
+          photoPath: path,
+        });
+      }
+
+      supplyForm.reset();
+      if (supplyCategoryInput) supplyCategoryInput.value = "";
+      if (supplyForm) supplyForm.hidden = true;
+      setStatus(
+        supplyStatus,
+        "Aviso enviado. Compras Shinext podrá darle seguimiento.",
+        "success",
+      );
+      await loadWorkerOperations(auth.currentUser);
+    } catch (error) {
+      setStatus(supplyStatus, humanizeError(error), "error");
+    } finally {
+      if (supplySubmit) supplySubmit.disabled = false;
+    }
   });
 }
 
