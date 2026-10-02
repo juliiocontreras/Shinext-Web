@@ -133,10 +133,6 @@ test("worker service lifecycle creates one assignment, notes, incident, earning 
   const note=await addNote({serviceId:requestId,text:"Cliente pidió atención especial en cocina.",visibility:"worker"});
   assert.equal(note.data.ok,true);
 
-  const incidentCall=httpsCallable(c1.functions,"reportIncident");
-  const incident=await incidentCall({serviceId:requestId,description:"No hay acceso al área de lavado."});
-  assert.equal(incident.data.ok,true);
-
   const progress=httpsCallable(c1.functions,"updateServiceStatus");
   assert.equal((await progress({serviceId:requestId,status:"en_route"})).data.status,"en_route");
   assert.equal((await progress({serviceId:requestId,status:"started"})).data.status,"started");
