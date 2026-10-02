@@ -48,6 +48,26 @@ service firebase.storage {
       allow delete: if applicantMayEdit(applicationId) || role() == "director";
     }
 
+    match /supply-requests/{workerUid}/{requestId}/{fileName} {
+      allow read: if signedIn()
+        && (
+          request.auth.uid == workerUid
+          || role() in ["director", "purchasing"]
+        );
+
+      allow create, update: if signedIn()
+        && request.auth.uid == workerUid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType in [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ];
+
+      allow delete: if signedIn()
+        && (request.auth.uid == workerUid || role() == "director");
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
