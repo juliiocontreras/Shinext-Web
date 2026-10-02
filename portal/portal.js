@@ -290,6 +290,63 @@ function renderSupplyRequests(requests) {
   </article>`).join("");
 }
 
+function renderCalendar(services) {
+  const list = document.querySelector("#calendar-list");
+  if (!list) return;
+  const upcoming = services
+    .filter((service) => ["scheduled", "en_route", "started", "incident"].includes(service.status))
+    .sort((a, b) => {
+      const aDate = dateFrom(a.scheduledAt)?.getTime() || Number.MAX_SAFE_INTEGER;
+      const bDate = dateFrom(b.scheduledAt)?.getTime() || Number.MAX_SAFE_INTEGER;
+      return aDate - bDate;
+    });
+
+  if (!upcoming.length) {
+    list.innerHTML = '<div class="calendar-placeholder"><span aria-hidden="true">▦</span><strong>Sin servicios programados</strong><p>Cuando tengas un servicio confirmado aparecerá aquí.</p></div>';
+    return;
+  }
+
+  list.innerHTML = upcoming.map((service) => {
+    const date = dateFrom(service.scheduledAt);
+    const day = date ? new Intl.DateTimeFormat("es-MX",{day:"2-digit"}).format(date) : "--";
+    const month = date ? new Intl.DateTimeFormat("es-MX",{month:"short"}).format(date) : "";
+    const time = date ? new Intl.DateTimeFormat("es-MX",{hour:"numeric",minute:"2-digit"}).format(date) : "Por confirmar";
+    return `<article class="calendar-service">
+      <div class="calendar-date"><strong>${day}</strong><span>${escapeHtml(month)}</span></div>
+      <div><small>${escapeHtml(time)}</small><strong>${escapeHtml(service.serviceType || "Servicio de limpieza")}</strong><span>${escapeHtml(service.zone || "Zona por confirmar")}</span></div>
+    </article>`;
+  }).join("");
+}
+
+function renderCompletedServices(services) {
+  const list = document.querySelector("#completed-service-list");
+  if (!list) return;
+  const completed = services
+    .filter((service) => service.status === "completed")
+    .sort((a, b) => {
+      const aDate = dateFrom(a.completedAt || a.scheduledAt)?.getTime() || 0;
+      const bDate = dateFrom(b.completedAt || b.scheduledAt)?.getTime() || 0;
+      return bDate - aDate;
+    });
+
+  if (!completed.length) {
+    list.innerHTML = '<div class="notice-card"><strong>Aún no hay servicios finalizados.</strong><span>Tu historial aparecerá aquí después de completar servicios.</span></div>';
+    return;
+  }
+
+  list.innerHTML = completed.map((service) => `<article class="worker-service-card completed-card">
+    <div class="service-card-top">
+      <span class="service-status status-accepted">Finalizado</span>
+      <strong class="service-pay">${formatMoney(service.workerEarning)}</strong>
+    </div>
+    <h3>${escapeHtml(service.serviceType || "Servicio de limpieza")}</h3>
+    <dl class="service-details">
+      <div><dt>Fecha</dt><dd>${escapeHtml(formatDate(service.completedAt || service.scheduledAt))}</dd></div>
+      <div><dt>Zona</dt><dd>${escapeHtml(service.zone || "Por confirmar")}</dd></div>
+    </dl>
+  </article>`).join("");
+}
+
 function renderServices(services) {
   const list = document.querySelector("#confirmed-service-list");
   const upcoming = services
@@ -299,6 +356,9 @@ function renderServices(services) {
       const bDate = dateFrom(b.scheduledAt)?.getTime() || Number.MAX_SAFE_INTEGER;
       return aDate - bDate;
     });
+
+  renderCalendar(services);
+  renderCompletedServices(services);
 
   const next = document.querySelector("#next-service");
   if (next) {
