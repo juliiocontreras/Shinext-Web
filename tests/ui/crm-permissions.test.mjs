@@ -7,7 +7,7 @@ const html=await readFile(new URL("../../crm/index.html",import.meta.url),"utf8"
 
 test("CRM rejects worker role and exposes department-aware modules",()=>{
  assert.match(js,/role==="worker"/);
- assert.match(js,/director:\["dashboard","recruitment","operations","accounting","purchasing","sales"\]/);
+ assert.match(js,/director:\["dashboard","recruitment","operations","accounting","purchasing","sales","content"\]/);
  assert.match(js,/recruitment:\["dashboard","recruitment"\]/);
  assert.match(js,/accounting:\["dashboard","accounting"\]/);
 });
@@ -21,4 +21,9 @@ test("CRM navigation honors permission grants and revokes",()=>{
 
 test("CRM keeps official Shinext logo asset",()=>{
  assert.match(html,/\/brand\/shinext-logo-original\.webp/);
+});
+
+test("CRM content module is permission-aware and wired to managed content",()=>{
+ assert.match(js,/manage_content:"content"/);
+ assert.match(js,/contentView/);
 });
