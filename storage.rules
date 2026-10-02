@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Worker expediente and operational attachments are private by default.
+    // Later tasks will add narrow role- and owner-based paths.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
