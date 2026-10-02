@@ -19,7 +19,7 @@ import {
   uploadBytes,
 } from "firebase/storage";
 
-const projectId = process.env.GCLOUD_PROJECT || "shinext-local";
+const projectId = process.env.GCLOUD_PROJECT || "demo-shinext-local";
 const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
 const storageHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST || "127.0.0.1:9199";
 const [firestoreHostname, firestorePortText] = firestoreHost.split(":");
