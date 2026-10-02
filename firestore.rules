@@ -151,6 +151,37 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /serviceNotes/{noteId} {
+      allow read: if signedIn()
+        && (
+          canManageServices()
+          || (
+            resource.data.visibility == "worker"
+            && exists(/databases/$(database)/documents/services/$(resource.data.serviceId))
+            && get(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.assignedWorkerUid == request.auth.uid
+          )
+        );
+      // Notes are append-only through Cloud Functions.
+      allow create, update, delete: if false;
+    }
+
+    match /incidents/{incidentId} {
+      allow read: if signedIn()
+        && (
+          canManageServices()
+          || (
+            exists(/databases/$(database)/documents/services/$(resource.data.serviceId))
+            && get(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.assignedWorkerUid == request.auth.uid
+          )
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if canManageServices() || isDirector();
+      allow create, update, delete: if false;
+    }
+
     match /auditLog/{entryId} {
       allow read: if permitted("view_audit", false);
       // Audit entries are server-only through Admin SDK / Cloud Functions.
