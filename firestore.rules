@@ -81,10 +81,46 @@ service cloud.firestore {
     }
 
     match /workerApplications/{applicationId} {
-      allow read: if canReviewApplications() || canApproveApplications();
-      // Candidate submission rules are intentionally added in Task 3.
-      allow create: if false;
-      allow update: if canReviewApplications() || canApproveApplications();
+      function isOwner() {
+        return signedIn() && resource.data.ownerUid == request.auth.uid;
+      }
+
+      function validApplicantCreate() {
+        return signedIn()
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.status == "received"
+          && request.resource.data.documentsPending == true
+          && request.resource.data.keys().hasOnly([
+            "ownerUid",
+            "fullName",
+            "email",
+            "phone",
+            "zone",
+            "experience",
+            "availability",
+            "hasOwnSupplies",
+            "status",
+            "documentsPending",
+            "createdAt",
+            "updatedAt"
+          ]);
+      }
+
+      function validOwnerDocumentUpdate() {
+        return isOwner()
+          && resource.data.status in ["received", "information_pending"]
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "documents",
+            "documentsPending",
+            "updatedAt"
+          ]);
+      }
+
+      allow read: if isOwner() || canReviewApplications() || canApproveApplications();
+      allow create: if validApplicantCreate();
+      allow update: if validOwnerDocumentUpdate();
       allow delete: if isDirector();
     }
 
