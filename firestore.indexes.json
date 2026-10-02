@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "serviceOffers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "serviceRequestId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

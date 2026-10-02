@@ -1,0 +1,87 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const portalHtml = await readFile(new URL("../../portal/index.html", import.meta.url), "utf8");
+const loginHtml = await readFile(new URL("../../portal/login.html", import.meta.url), "utf8");
+const portalJs = await readFile(new URL("../../portal/portal.js", import.meta.url), "utf8");
+
+test("worker portal exposes the five approved primary sections", () => {
+  for (const view of ["home", "services", "calendar", "earnings", "supplies"]) {
+    assert.match(portalHtml, new RegExp(`data-nav-view=["']${view}["']`));
+  }
+});
+
+test("worker portal keeps the official Shinext brand asset", () => {
+  assert.match(portalHtml, /\/brand\/shinext-logo-original\.webp/);
+  assert.match(loginHtml, /\/brand\/shinext-logo-original\.webp/);
+});
+
+test("portal guard requires worker role and active profile", () => {
+  assert.match(portalJs, /token\.claims\.role !== "worker"/);
+  assert.match(portalJs, /worker\.active !== true/);
+  assert.match(portalJs, /window\.location\.replace\("\/portal\/login\.html"\)/);
+});
+
+test("login uses email and password authentication", () => {
+  assert.match(loginHtml, /type="email"/);
+  assert.match(loginHtml, /type="password"/);
+  assert.match(portalJs, /signInWithEmailAndPassword/);
+});
+
+test("portal connects worker offers to callable accept/reject flow", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "respondToOffer"\)/);
+  assert.match(portalJs, /where\("workerUid", "==", user\.uid\)/);
+  assert.match(portalJs, /data-offer-action="accept"/);
+  assert.match(portalJs, /data-offer-action="reject"/);
+});
+
+test("portal never renders client price or Shinext margin in offer cards", () => {
+  assert.doesNotMatch(portalJs, /clientPrice|shinextMargin|marginShinext/);
+});
+
+
+test("confirmed services expose note and incident actions", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "addServiceNote"\)/);
+  assert.match(portalJs, /httpsCallable\(functions, "reportIncident"\)/);
+  assert.match(portalJs, /data-service-action="note"/);
+  assert.match(portalJs, /data-service-action="incident"/);
+});
+
+
+test("worker earnings dashboard reads only worker-owned earnings and renders payment state", () => {
+  assert.match(portalJs, /collection\(db, "workerEarnings"\)/);
+  assert.match(portalJs, /where\("workerUid", "==", user\.uid\)/);
+  assert.match(portalJs, /paymentStatus === "paid"/);
+  assert.match(portalJs, /#earning-total/);
+  assert.match(portalJs, /#earning-pending/);
+});
+
+
+test("worker supply form connects categories, callable workflow and optional photo upload", () => {
+  assert.match(portalHtml, /id="supply-request-form"/);
+  assert.match(portalHtml, /data-supply-category="cleaning_products"/);
+  assert.match(portalHtml, /data-supply-category="tools"/);
+  assert.match(portalHtml, /data-supply-category="uniform"/);
+  assert.match(portalJs, /httpsCallable\(functions, "createSupplyRequest"\)/);
+  assert.match(portalJs, /httpsCallable\(functions, "updateSupplyRequest"\)/);
+  assert.match(portalJs, /uploadBytes/);
+  assert.match(portalJs, /collection\(db, "supplyRequests"\)/);
+});
+
+
+test("worker can progress an assigned service in simple ordered steps", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "updateServiceStatus"\)/);
+  assert.match(portalJs, /Voy en camino/);
+  assert.match(portalJs, /Iniciar servicio/);
+  assert.match(portalJs, /Finalizar servicio/);
+  assert.match(portalJs, /data-service-progress/);
+});
+
+
+test("worker portal renders a real calendar and completed service history", () => {
+  assert.match(portalHtml, /id="calendar-list"/);
+  assert.match(portalHtml, /id="completed-service-list"/);
+  assert.match(portalJs, /function renderCalendar/);
+  assert.match(portalJs, /function renderCompletedServices/);
+});

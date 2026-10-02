@@ -1,0 +1,274 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return signedIn() ? request.auth.token.get("role", null) : null;
+    }
+
+    function isDirector() {
+      return role() == "director";
+    }
+
+    function collaboratorPath() {
+      return /databases/$(database)/documents/collaborators/$(request.auth.uid);
+    }
+
+    function collaboratorExists() {
+      return signedIn() && exists(collaboratorPath());
+    }
+
+    function collaborator() {
+      return get(collaboratorPath()).data;
+    }
+
+    function hasGrant(permission) {
+      return collaboratorExists()
+        && collaborator().get("permissionGrants", []) is list
+        && permission in collaborator().get("permissionGrants", []);
+    }
+
+    function hasRevoke(permission) {
+      return collaboratorExists()
+        && collaborator().get("permissionRevokes", []) is list
+        && permission in collaborator().get("permissionRevokes", []);
+    }
+
+    function permitted(permission, baseAllowed) {
+      return signedIn()
+        && !hasRevoke(permission)
+        && (isDirector() || hasGrant(permission) || baseAllowed);
+    }
+
+    function canViewWorkers() {
+      return permitted(
+        "view_workers",
+        role() == "recruitment" || role() == "operations"
+      );
+    }
+
+    function canReviewApplications() {
+      return permitted(
+        "review_applications",
+        role() == "recruitment"
+      );
+    }
+
+    function canApproveApplications() {
+      return permitted(
+        "approve_applications",
+        role() == "recruitment"
+      );
+    }
+
+    function canManageServices() {
+      return permitted(
+        "manage_services",
+        role() == "operations"
+      );
+    }
+
+    function canViewFinancialSummary() {
+      return permitted(
+        "view_financial_summary",
+        role() == "accounting"
+      );
+    }
+
+    function canManagePayments() {
+      return permitted(
+        "manage_payments",
+        role() == "accounting"
+      );
+    }
+
+    function canManageSupplies() {
+      return permitted(
+        "manage_supplies",
+        role() == "purchasing"
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isDirector());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /collaborators/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isDirector());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /workers/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || canViewWorkers());
+      allow create, update, delete: if isDirector();
+    }
+
+    match /workerApplications/{applicationId} {
+      function isOwner() {
+        return signedIn() && resource.data.ownerUid == request.auth.uid;
+      }
+
+      function validApplicantCreate() {
+        return signedIn()
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.status == "received"
+          && request.resource.data.documentsPending == true
+          && request.resource.data.keys().hasOnly([
+            "ownerUid",
+            "fullName",
+            "email",
+            "phone",
+            "zone",
+            "experience",
+            "availability",
+            "hasOwnSupplies",
+            "status",
+            "documentsPending",
+            "createdAt",
+            "updatedAt"
+          ]);
+      }
+
+      function validOwnerDocumentUpdate() {
+        return isOwner()
+          && resource.data.status in ["received", "information_pending"]
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "documents",
+            "documentsPending",
+            "updatedAt"
+          ]);
+      }
+
+      allow read: if isOwner() || canReviewApplications() || canApproveApplications();
+      allow create: if validApplicantCreate();
+      allow update: if validOwnerDocumentUpdate();
+      allow delete: if isDirector();
+    }
+
+    match /serviceRequests/{serviceRequestId} {
+      allow read: if canManageServices();
+      // Service-request lifecycle changes are server-only.
+      allow create, update, delete: if false;
+    }
+
+    match /serviceOffers/{offerId} {
+      allow read: if signedIn()
+        && (resource.data.workerUid == request.auth.uid || canManageServices());
+      // Workers respond through Cloud Functions to preserve atomic assignment.
+      allow create, update, delete: if false;
+    }
+
+    match /services/{serviceId} {
+      allow read: if signedIn()
+        && (resource.data.assignedWorkerUid == request.auth.uid || canManageServices());
+      // State transitions are privileged server operations.
+      allow create, update, delete: if false;
+    }
+
+    match /serviceNotes/{noteId} {
+      allow read: if signedIn()
+        && (
+          canManageServices()
+          || (
+            resource.data.visibility == "worker"
+            && exists(/databases/$(database)/documents/services/$(resource.data.serviceId))
+            && get(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.assignedWorkerUid == request.auth.uid
+          )
+        );
+      // Notes are append-only through Cloud Functions.
+      allow create, update, delete: if false;
+    }
+
+    match /incidents/{incidentId} {
+      allow read: if signedIn()
+        && (
+          canManageServices()
+          || (
+            exists(/databases/$(database)/documents/services/$(resource.data.serviceId))
+            && get(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.assignedWorkerUid == request.auth.uid
+          )
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if canManageServices() || isDirector();
+      allow create, update, delete: if false;
+    }
+
+    match /workerEarnings/{earningId} {
+      allow read: if signedIn()
+        && (
+          resource.data.workerUid == request.auth.uid
+          || canViewFinancialSummary()
+          || canManagePayments()
+        );
+      // Generated and updated only through privileged backend operations.
+      allow create, update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if canViewFinancialSummary() || canManagePayments();
+      allow create, update, delete: if false;
+    }
+
+    match /supplyRequests/{requestId} {
+      allow read: if signedIn()
+        && (
+          resource.data.workerUid == request.auth.uid
+          || canManageSupplies()
+          || isDirector()
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /inventory/{itemId} {
+      allow read: if canManageSupplies() || isDirector();
+      allow create, update, delete: if false;
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if canManageSupplies() || isDirector();
+      allow create, update, delete: if false;
+    }
+
+    function canManageContent() {
+      return permitted("manage_content", false);
+    }
+
+    match /blogPosts/{postId} {
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.status == "published");
+      allow create, update, delete: if canManageContent();
+    }
+
+    match /mediaEmbeds/{mediaId} {
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.active == true);
+      allow create, update, delete: if canManageContent();
+    }
+
+    match /bannerCampaigns/{bannerId} {
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.active == true);
+      allow create, update, delete: if canManageContent();
+    }
+
+    match /auditLog/{entryId} {
+      allow read: if permitted("view_audit", false);
+      // Audit entries are server-only through Admin SDK / Cloud Functions.
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

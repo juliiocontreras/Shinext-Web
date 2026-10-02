@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#062d70">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Portal del Trabajador | Shinext</title>
+  <link rel="icon" href="/brand/shinext-logo-original.webp">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body class="portal-body" data-page="portal">
+  <div id="portal-loading" class="portal-loading" aria-live="polite">Cargando tu portal…</div>
+
+  <div id="portal-app" class="portal-app" hidden>
+    <header class="portal-header">
+      <a class="portal-header-brand" href="/" aria-label="Shinext, inicio">
+        <img src="/brand/shinext-logo-original.webp" alt="Shinext">
+      </a>
+      <button id="logout-button" class="icon-button" type="button" aria-label="Cerrar sesión">Salir</button>
+    </header>
+
+    <main class="portal-main">
+      <section class="welcome-card" aria-labelledby="welcome-title">
+        <div>
+          <p class="portal-kicker">Trabajador Shinext</p>
+          <h1 id="welcome-title">Hola, <span id="worker-name">bienvenido</span></h1>
+          <p id="worker-zone" class="muted"></p>
+        </div>
+        <span class="active-badge">Cuenta activa</span>
+      </section>
+
+      <section id="view-home" class="portal-view active" data-view="home">
+        <div class="section-title">
+          <div><p>Hoy</p><h2>Lo más importante</h2></div>
+        </div>
+        <div class="priority-grid">
+          <article class="priority-card featured">
+            <span class="priority-icon" aria-hidden="true">◷</span>
+            <div><small>Próximo servicio</small><strong id="next-service">Sin servicios programados</strong><span>Cuando tengas uno, aparecerá aquí.</span></div>
+          </article>
+          <article class="priority-card">
+            <span class="priority-icon" aria-hidden="true">!</span>
+            <div><small>Solicitudes nuevas</small><strong id="pending-offers">0</strong><span>Servicios por aceptar o rechazar.</span></div>
+          </article>
+          <article class="priority-card">
+            <span class="priority-icon" aria-hidden="true">$</span>
+            <div><small>Ganancias pendientes</small><strong id="pending-earnings">$0</strong><span>Pagos aún no marcados como pagados.</span></div>
+          </article>
+        </div>
+
+        <section class="quick-card">
+          <h2>Acciones rápidas</h2>
+          <div class="quick-actions">
+            <button type="button" data-go-view="services"><span aria-hidden="true">✓</span> Ver solicitudes</button>
+            <button type="button" data-go-view="calendar"><span aria-hidden="true">▦</span> Ver calendario</button>
+            <button type="button" data-go-view="supplies"><span aria-hidden="true">+</span> Reportar insumo</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="view-services" class="portal-view" data-view="services" hidden>
+        <div class="section-title"><div><p>Servicios</p><h2>Mis solicitudes y servicios</h2></div></div>
+        <div class="notice-card">
+          <strong>No tienes solicitudes nuevas.</strong>
+          <span>Cuando Shinext te envíe un servicio, aquí podrás revisar la información necesaria y elegir Aceptar o Rechazar.</span>
+        </div>
+        <div id="service-list" class="stack-list"></div>
+        <div class="section-title service-subsection"><div><p>Confirmados</p><h2>Próximos servicios</h2></div></div>
+        <div id="confirmed-service-list" class="stack-list"></div>
+        <div class="section-title service-subsection"><div><p>Historial</p><h2>Servicios realizados</h2></div></div>
+        <div id="completed-service-list" class="stack-list"></div>
+      </section>
+
+      <section id="view-calendar" class="portal-view" data-view="calendar" hidden>
+        <div class="section-title"><div><p>Calendario</p><h2>Mis próximos servicios</h2></div></div>
+        <div id="calendar-list" class="calendar-list">
+          <div class="calendar-placeholder">
+            <span aria-hidden="true">▦</span>
+            <strong>Tu agenda aparecerá aquí</strong>
+            <p>Mostraremos únicamente los días y horarios en los que tengas servicios confirmados.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-earnings" class="portal-view" data-view="earnings" hidden>
+        <div class="section-title"><div><p>Mis ganancias</p><h2>Resumen de pagos</h2></div></div>
+        <div class="earnings-summary">
+          <article><small>Total generado</small><strong id="earning-total">$0</strong></article>
+          <article><small>Pagado</small><strong id="earning-paid">$0</strong></article>
+          <article><small>Pendiente</small><strong id="earning-pending">$0</strong></article>
+        </div>
+        <div id="earnings-empty" class="notice-card"><strong>Aún no hay movimientos.</strong><span>Después de completar y validar un servicio aparecerá aquí tu ganancia correspondiente.</span></div>
+        <div id="earnings-list" class="stack-list"></div>
+      </section>
+
+      <section id="view-supplies" class="portal-view" data-view="supplies" hidden>
+        <div class="section-title"><div><p>Mis insumos</p><h2>¿Qué necesitas?</h2></div></div>
+        <p class="section-helper">Elige una categoría e indica qué te hace falta. Compras Shinext recibirá tu aviso.</p>
+        <div class="supply-grid">
+          <button type="button" class="supply-card" data-supply-category="cleaning_products"><span aria-hidden="true">◉</span><strong>Productos de limpieza</strong><small>Químicos y consumibles</small></button>
+          <button type="button" class="supply-card" data-supply-category="tools"><span aria-hidden="true">⌁</span><strong>Herramientas</strong><small>Escobas, trapeadores y equipo</small></button>
+          <button type="button" class="supply-card" data-supply-category="uniform"><span aria-hidden="true">◇</span><strong>Uniforme</strong><small>Prendas o reposiciones</small></button>
+        </div>
+        <form id="supply-request-form" class="supply-form" hidden>
+          <input id="supply-category" name="category" type="hidden">
+          <div class="supply-form-head">
+            <div>
+              <small>Categoría seleccionada</small>
+              <strong id="supply-category-label">Insumo</strong>
+            </div>
+            <button id="supply-form-close" class="icon-button compact" type="button">Cambiar</button>
+          </div>
+          <label>
+            ¿Qué necesitas?
+            <input name="item" required maxlength="120" placeholder="Ej. Desengrasante, trapeador, playera">
+          </label>
+          <label>
+            Cantidad aproximada
+            <input name="quantity" type="number" min="1" max="99" value="1" required inputmode="numeric">
+          </label>
+          <label>
+            Nota <small>(opcional)</small>
+            <textarea name="note" maxlength="500" rows="3" placeholder="Agrega contexto si lo necesitas"></textarea>
+          </label>
+          <label>
+            Foto <small>(opcional)</small>
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+          <button id="supply-submit" class="portal-button primary" type="submit">Enviar aviso a Compras</button>
+        </form>
+        <div id="supply-status" class="portal-status" aria-live="polite"></div>
+        <div id="supply-history" class="stack-list supply-history"></div>
+      </section>
+    </main>
+
+    <nav class="portal-nav" aria-label="Navegación del portal">
+      <button class="active" type="button" data-nav-view="home"><span aria-hidden="true">⌂</span><small>Inicio</small></button>
+      <button type="button" data-nav-view="services"><span aria-hidden="true">✓</span><small>Servicios</small></button>
+      <button type="button" data-nav-view="calendar"><span aria-hidden="true">▦</span><small>Calendario</small></button>
+      <button type="button" data-nav-view="earnings"><span aria-hidden="true">$</span><small>Ganancias</small></button>
+      <button type="button" data-nav-view="supplies"><span aria-hidden="true">+</span><small>Insumos</small></button>
+    </nav>
+  </div>
+
+  <script type="module" src="/portal/portal.js"></script>
+</body>
+</html>
