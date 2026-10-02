@@ -68,6 +68,28 @@ async function loadManagedArticleMedia() {
 
   section.append(title, preview);
 
+  if (media.provider === "youtube" && media.thumbnailUrl && media.publishedAt) {
+    const published =
+      typeof media.publishedAt.toDate === "function"
+        ? media.publishedAt.toDate()
+        : new Date(media.publishedAt);
+    if (!Number.isNaN(published.getTime())) {
+      const structured = document.createElement("script");
+      structured.type = "application/ld+json";
+      structured.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        name: media.title || "Video de Shinext",
+        description: media.description || "Video relacionado de Shinext.",
+        thumbnailUrl: [media.thumbnailUrl],
+        uploadDate: published.toISOString(),
+        embedUrl: media.embedUrl,
+        contentUrl: media.canonicalUrl || undefined,
+      });
+      document.head.append(structured);
+    }
+  }
+
   const lead = article.querySelector(".article-lead");
   if (lead?.parentNode) lead.insertAdjacentElement("afterend", section);
   else article.append(section);
