@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trabaja con Shinext | Solicitud de personal de limpieza</title>
+  <meta name="description" content="Postúlate para formar parte de Trabajadores Shinext en Saltillo. Completa tus datos y expediente de forma sencilla.">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/trabaja/trabaja.css">
+</head>
+<body class="apply-page">
+  <header class="apply-header">
+    <a href="/" aria-label="Ir al inicio de Shinext">
+      <img src="/brand/shinext-logo-original.webp" alt="Shinext" class="apply-logo">
+    </a>
+  </header>
+
+  <main class="apply-shell">
+    <section class="apply-intro">
+      <span class="eyebrow">Trabajadores Shinext</span>
+      <h1>Queremos conocerte</h1>
+      <p>Completa tus datos y documentos. Nuestro equipo de Reclutamiento revisará tu expediente antes de habilitar cualquier acceso como Trabajador Shinext.</p>
+      <div class="privacy-note">
+        <strong>Tu información es privada.</strong>
+        <span>La identificación y comprobantes se almacenan en un espacio protegido y solo pueden revisarlos usuarios autorizados de Shinext.</span>
+      </div>
+    </section>
+
+    <form id="worker-application-form" class="apply-card" novalidate>
+      <div class="form-section">
+        <h2>1. Datos de contacto</h2>
+        <label>Nombre completo
+          <input name="fullName" autocomplete="name" required maxlength="120">
+        </label>
+        <label>Correo electrónico
+          <input name="email" type="email" autocomplete="email" required maxlength="160">
+        </label>
+        <label>Teléfono
+          <input name="phone" type="tel" autocomplete="tel" required maxlength="20" inputmode="tel">
+        </label>
+        <label>Zona o colonia
+          <input name="zone" autocomplete="address-level3" required maxlength="120" placeholder="Ej. República, Centro, Mirasierra">
+        </label>
+      </div>
+
+      <div class="form-section">
+        <h2>2. Experiencia y disponibilidad</h2>
+        <label>Experiencia en limpieza
+          <select name="experience" required>
+            <option value="">Selecciona una opción</option>
+            <option value="none">Sin experiencia formal</option>
+            <option value="under_1_year">Menos de 1 año</option>
+            <option value="1_3_years">1 a 3 años</option>
+            <option value="over_3_years">Más de 3 años</option>
+          </select>
+        </label>
+        <label>Disponibilidad principal
+          <select name="availability" required>
+            <option value="">Selecciona una opción</option>
+            <option value="weekdays">Entre semana</option>
+            <option value="weekends">Fines de semana</option>
+            <option value="both">Entre semana y fines de semana</option>
+            <option value="variable">Horario variable</option>
+          </select>
+        </label>
+        <label class="check-row">
+          <input name="hasOwnSupplies" type="checkbox">
+          <span>Actualmente cuento con algunos productos o herramientas propias.</span>
+        </label>
+      </div>
+
+      <div class="form-section">
+        <h2>3. Expediente</h2>
+        <p class="helper">Formatos permitidos: PDF, JPG o PNG. Máximo 10 MB por archivo.</p>
+
+        <label>Identificación oficial con fotografía <span aria-hidden="true">*</span>
+          <input name="identityDocument" type="file" accept=".pdf,image/jpeg,image/png" required>
+        </label>
+
+        <label>Comprobante de domicilio <span aria-hidden="true">*</span>
+          <input name="addressDocument" type="file" accept=".pdf,image/jpeg,image/png" required>
+        </label>
+
+        <label>Último comprobante de estudios <small>(opcional)</small>
+          <input name="studiesDocument" type="file" accept=".pdf,image/jpeg,image/png">
+        </label>
+      </div>
+
+      <label class="check-row consent-row">
+        <input name="consent" type="checkbox" required>
+        <span>Confirmo que la información proporcionada es correcta y autorizo a Shinext a revisarla para mi proceso de reclutamiento.</span>
+      </label>
+
+      <div id="application-status" class="form-status" role="status" aria-live="polite"></div>
+
+      <button id="application-submit" class="btn primary apply-submit" type="submit">
+        Enviar mi solicitud
+      </button>
+
+      <p class="form-footnote">Enviar una solicitud no garantiza contratación ni activa una cuenta de trabajador. Shinext revisará primero el expediente.</p>
+    </form>
+  </main>
+
+  <script type="module" src="/assets/js/worker-application.js"></script>
+</body>
+</html>
