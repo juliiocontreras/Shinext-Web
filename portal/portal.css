@@ -391,3 +391,75 @@ button { cursor: pointer; }
     grid-row: 1 / span 2;
   }
 }
+
+
+.supply-form {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #cfe0f5;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 10px 28px rgba(16,38,68,.06);
+}
+.supply-form[hidden] { display: none !important; }
+.supply-form-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.supply-form-head div { display: grid; gap: 3px; }
+.supply-form-head small { color: var(--muted); font-weight: 700; }
+.supply-form-head strong { color: var(--navy); font-size: 18px; }
+.icon-button.compact { min-height: 36px; padding: 0 11px; font-size: 12px; }
+.supply-form label {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.supply-form label small { color: var(--muted); font-weight: 600; }
+.supply-form input,
+.supply-form textarea {
+  width: 100%;
+  border: 1px solid #cad5e2;
+  border-radius: 13px;
+  background: white;
+  color: var(--ink);
+  padding: 12px 13px;
+}
+.supply-form input:not([type="file"]) { min-height: 48px; }
+.supply-form textarea { resize: vertical; }
+.supply-form input:focus,
+.supply-form textarea:focus {
+  outline: 3px solid rgba(11,103,209,.15);
+  border-color: var(--blue);
+}
+.supply-form .portal-button { width: 100%; margin-top: 16px; }
+
+.supply-history { margin-top: 16px; }
+.supply-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+}
+.supply-history-row > div { display: grid; gap: 2px; }
+.supply-history-row small,
+.supply-history-row span { color: var(--muted); font-size: 12px; }
+.supply-history-row strong { font-size: 15px; }
+.supply-history-status {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--navy) !important;
+  font-weight: 900;
+}
+.supply-history-status.status-delivered { background: #e8f7ee; color: var(--success) !important; }
