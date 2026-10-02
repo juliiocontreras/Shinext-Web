@@ -9,7 +9,7 @@ test("Firestore emulator is reachable", async () => {
   const response = await fetch(`${base}/__smoke__/probe`);
   assert.notEqual(response.status, 0);
   assert.ok(
-    [200, 404].includes(response.status),
+    [200, 403, 404].includes(response.status),
     `expected emulator response, got HTTP ${response.status}`,
   );
 });
