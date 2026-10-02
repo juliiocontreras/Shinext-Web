@@ -137,7 +137,10 @@ test("worker service lifecycle creates one assignment, notes, incident, earning 
   const incident=await incidentCall({serviceId:requestId,description:"No hay acceso al área de lavado."});
   assert.equal(incident.data.ok,true);
 
-  await adminDb.collection("services").doc(requestId).update({status:"completed"});
+  const progress=httpsCallable(c1.functions,"updateServiceStatus");
+  assert.equal((await progress({serviceId:requestId,status:"en_route"})).data.status,"en_route");
+  assert.equal((await progress({serviceId:requestId,status:"started"})).data.status,"started");
+  assert.equal((await progress({serviceId:requestId,status:"completed"})).data.status,"completed");
 
   const close=httpsCallable(ops.functions,"closeService");
   const closed=await close({serviceId:requestId});
