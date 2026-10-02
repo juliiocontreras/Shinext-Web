@@ -56,3 +56,15 @@ test("worker earnings dashboard reads only worker-owned earnings and renders pay
   assert.match(portalJs, /#earning-total/);
   assert.match(portalJs, /#earning-pending/);
 });
+
+
+test("worker supply form connects categories, callable workflow and optional photo upload", () => {
+  assert.match(portalHtml, /id="supply-request-form"/);
+  assert.match(portalHtml, /data-supply-category="cleaning_products"/);
+  assert.match(portalHtml, /data-supply-category="tools"/);
+  assert.match(portalHtml, /data-supply-category="uniform"/);
+  assert.match(portalJs, /httpsCallable\(functions, "createSupplyRequest"\)/);
+  assert.match(portalJs, /httpsCallable\(functions, "updateSupplyRequest"\)/);
+  assert.match(portalJs, /uploadBytes/);
+  assert.match(portalJs, /collection\(db, "supplyRequests"\)/);
+});
