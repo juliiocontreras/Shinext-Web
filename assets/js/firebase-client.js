@@ -20,19 +20,31 @@ const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
 const localConfig = {
   apiKey: "demo-key",
-  authDomain: "shinext-local.firebaseapp.com",
-  projectId: "shinext-local",
-  storageBucket: "shinext-local.appspot.com",
-  appId: "1:123456789:web:shinext-local",
+  authDomain: "demo-shinext-local.firebaseapp.com",
+  projectId: "demo-shinext-local",
+  storageBucket: "demo-shinext-local.appspot.com",
+  appId: "1:123456789:web:demo-shinext-local",
 };
 
-const firebaseConfig = window.SHINEXT_FIREBASE_CONFIG || (isLocal ? localConfig : null);
+async function loadFirebaseConfig() {
+  if (isLocal) return localConfig;
+  if (window.SHINEXT_FIREBASE_CONFIG) return window.SHINEXT_FIREBASE_CONFIG;
 
-if (!firebaseConfig) {
-  throw new Error(
-    "Firebase todavía no está conectado a producción. Configura window.SHINEXT_FIREBASE_CONFIG.",
-  );
+  const response = await fetch("/__/firebase/init.json", {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      "Firebase Hosting no pudo proporcionar la configuración del proyecto.",
+    );
+  }
+
+  return response.json();
 }
+
+const firebaseConfig = await loadFirebaseConfig();
 
 export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
