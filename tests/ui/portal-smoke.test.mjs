@@ -39,3 +39,11 @@ test("portal connects worker offers to callable accept/reject flow", () => {
 test("portal never renders client price or Shinext margin in offer cards", () => {
   assert.doesNotMatch(portalJs, /clientPrice|shinextMargin|marginShinext/);
 });
+
+
+test("confirmed services expose note and incident actions", () => {
+  assert.match(portalJs, /httpsCallable\(functions, "addServiceNote"\)/);
+  assert.match(portalJs, /httpsCallable\(functions, "reportIncident"\)/);
+  assert.match(portalJs, /data-service-action="note"/);
+  assert.match(portalJs, /data-service-action="incident"/);
+});
