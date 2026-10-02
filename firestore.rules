@@ -244,17 +244,20 @@ service cloud.firestore {
     }
 
     match /blogPosts/{postId} {
-      allow read: if resource.data.public == true && resource.data.status == "published";
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.status == "published");
       allow create, update, delete: if canManageContent();
     }
 
     match /mediaEmbeds/{mediaId} {
-      allow read: if resource.data.public == true && resource.data.active == true;
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.active == true);
       allow create, update, delete: if canManageContent();
     }
 
     match /bannerCampaigns/{bannerId} {
-      allow read: if resource.data.public == true && resource.data.active == true;
+      allow read: if canManageContent()
+        || (resource.data.public == true && resource.data.active == true);
       allow create, update, delete: if canManageContent();
     }
 
