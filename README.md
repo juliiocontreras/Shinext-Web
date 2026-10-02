@@ -17,7 +17,7 @@ Mientras no exista un despliegue Firebase de producción verificado, la configur
 
 ## Desarrollo local de Firebase
 
-Requisitos: Node.js 20+ y Java 11+ para los emuladores.
+Requisitos: Node.js 20+ y Java 21 recomendado para los emuladores.
 
 ```bash
 npm install
@@ -44,3 +44,12 @@ El proyecto local usa `shinext-local`. Para conectar un proyecto Firebase real, 
 Las reglas iniciales de Firestore y Storage son **deny-by-default**. Los permisos se abrirán de forma explícita conforme se implementen los módulos y cada cambio debe cubrirse con pruebas de Emulator Suite.
 
 No se deben guardar secretos, llaves administrativas ni documentos de candidatos/trabajadores dentro del repositorio.
+
+
+## Despliegue
+
+El procedimiento de conexión, verificación, despliegue y rollback de Firebase está documentado en:
+
+`docs/operations/firebase-deploy.md`
+
+No se debe desplegar a producción hasta tener un proyecto Firebase real conectado y la suite de CI en verde.
