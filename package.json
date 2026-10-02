@@ -2,7 +2,7 @@
   "name": "shinext-web",
   "private": true,
   "scripts": {
-    "test": "node --test tests/emulator/*.test.mjs tests/ui/*.test.mjs",
+    "test": "node --test tests/emulator/*.test.mjs tests/ui/*.test.mjs tests/seo/*.test.mjs",
     "test:ui": "node --test tests/ui/*.test.mjs",
     "test:emulator": "node --test tests/emulator/smoke.test.mjs",
     "emulators": "firebase emulators:start --project shinext-local",
