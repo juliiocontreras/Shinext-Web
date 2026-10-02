@@ -65,6 +65,13 @@ service cloud.firestore {
       );
     }
 
+    function canManageServices() {
+      return permitted(
+        "manage_services",
+        role() == "operations"
+      );
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isDirector());
       allow create, update, delete: if isDirector();
@@ -122,6 +129,26 @@ service cloud.firestore {
       allow create: if validApplicantCreate();
       allow update: if validOwnerDocumentUpdate();
       allow delete: if isDirector();
+    }
+
+    match /serviceRequests/{serviceRequestId} {
+      allow read: if canManageServices();
+      // Service-request lifecycle changes are server-only.
+      allow create, update, delete: if false;
+    }
+
+    match /serviceOffers/{offerId} {
+      allow read: if signedIn()
+        && (resource.data.workerUid == request.auth.uid || canManageServices());
+      // Workers respond through Cloud Functions to preserve atomic assignment.
+      allow create, update, delete: if false;
+    }
+
+    match /services/{serviceId} {
+      allow read: if signedIn()
+        && (resource.data.assignedWorkerUid == request.auth.uid || canManageServices());
+      // State transitions are privileged server operations.
+      allow create, update, delete: if false;
     }
 
     match /auditLog/{entryId} {
