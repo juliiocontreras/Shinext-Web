@@ -6,6 +6,8 @@ export { createOffer } from "./services/createOffer.js";
 export { respondToOffer } from "./services/respondToOffer.js";
 export { addServiceNote } from "./services/addServiceNote.js";
 export { reportIncident } from "./services/reportIncident.js";
+export { closeService } from "./finance/closeService.js";
+export { markWorkerPayment } from "./finance/markWorkerPayment.js";
 
 export const foundationHealth = onCall(() => ({
   ok: true,
