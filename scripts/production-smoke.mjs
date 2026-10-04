@@ -27,6 +27,12 @@ await expectHtml("/blog/", /Blog Shinext|Consejos de limpieza/i, "blog");
 await expectHtml("/portal/", /Portal del Trabajador|Trabajador Shinext/i, "worker portal");
 await expectHtml("/crm/", /Shinext CRM/i, "CRM shell");
 
+const health = await get("/api/healthz", { cache: "no-store" });
+assert.equal(health.response.ok, true, `healthz: HTTP ${health.response.status}`);
+const healthPayload = JSON.parse(health.text);
+assert.equal(healthPayload.ok, true, "healthz must report ok=true");
+assert.equal(healthPayload.service, "shinext-functions", "healthz must identify Shinext Functions");
+
 const robots = await get("/robots.txt");
 assert.equal(robots.response.ok, true, `robots.txt: HTTP ${robots.response.status}`);
 assert.match(robots.text, /Disallow:\s*\/crm\//i, "robots.txt must disallow CRM");
