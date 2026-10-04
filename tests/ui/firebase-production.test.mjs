@@ -18,11 +18,17 @@ test("local Firebase development uses a demo project id", () => {
   assert.doesNotMatch(client, /projectId:\s*"shinext-local"/);
 });
 
-test("service worker never intercepts Firebase reserved Hosting namespace", () => {
-  assert.match(serviceWorker, /pathname\.startsWith\('\/__\/'\)/);
-  assert.match(serviceWorker, /return;/);
+test("service worker never intercepts Firebase reserved or private app routes", () => {
+  assert.match(serviceWorker, /PRIVATE_PREFIXES\s*=\s*\['\/crm\/', '\/portal\/', '\/__\/'\]/);
+  assert.match(serviceWorker, /PRIVATE_PREFIXES\.some/);
+  assert.match(serviceWorker, /if \(!SHELL_PATHS\.has\(url\.pathname\)\) return/);
 });
 
+test("service worker caches only same-origin public shell resources", () => {
+  assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
+  assert.match(serviceWorker, /SHELL_PATHS = new Set\(SHELL\)/);
+  assert.doesNotMatch(serviceWorker, /cache\.put\(event\.request, copy\).*portal/s);
+});
 
 test("public managed content attempts Firebase on Hosting and keeps fallbacks on failure", () => {
   assert.match(appJs, /loadManagedBanners\(\)/);
