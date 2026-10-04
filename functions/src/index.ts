@@ -13,6 +13,7 @@ export { createSupplyRequest } from "./supplies/createSupplyRequest.js";
 export { updateSupplyRequest } from "./supplies/updateSupplyRequest.js";
 export { saveMediaEmbed } from "./content/saveMediaEmbed.js";
 export { saveBannerCampaign } from "./content/saveBannerCampaign.js";
+export { healthz } from "./healthz.js";
 
 export const foundationHealth = onCall(() => ({
   ok: true,
