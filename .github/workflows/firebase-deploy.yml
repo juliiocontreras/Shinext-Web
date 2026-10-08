@@ -15,8 +15,6 @@ on:
           - rules
   push:
     branches: [main]
-    paths:
-      - ".github/deploy-now/**"
 
 permissions:
   contents: read
@@ -34,6 +32,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Validate production configuration
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "::error::Set FIREBASE_PROJECT_ID in the production environment."
+            exit 1
+          fi
+          case "$FIREBASE_PROJECT_ID" in
+            demo-*) echo "::error::Refusing to deploy to a demo project."; exit 1 ;;
+          esac
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Set FIREBASE_SERVICE_ACCOUNT_JSON in the production environment."
+            exit 1
+          fi
 
       - name: Use Node.js 20
         uses: actions/setup-node@v5
