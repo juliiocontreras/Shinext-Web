@@ -127,14 +127,16 @@ Netlify configuration is legacy transition material. Firebase Hosting becomes au
 
 ## GitHub Actions production deployment
 
-The repository includes a manual workflow at `.github/workflows/firebase-deploy.yml`.
+The repository includes an automatic production workflow at `.github/workflows/firebase-deploy.yml`. Every push to `main` runs the validation, build and test gates, then deploys all configured Firebase services. Pull requests run Firebase CI without deploying production.
 
 Before the first production deploy, configure the GitHub **production** environment with:
 
 - Repository/environment variable `FIREBASE_PROJECT_ID`: the real Shinext Firebase project id.
 - Environment secret `FIREBASE_SERVICE_ACCOUNT_JSON`: JSON credentials for a dedicated deployment service account with only the Firebase/GCP permissions required to deploy Hosting, Firestore rules/indexes, Storage rules and Cloud Functions.
 
-The workflow always rebuilds and runs the automated test suite before any deployment. It rejects project ids starting with `demo-`.
+The workflow checks that the project id and deployment secret are present before installing dependencies. It always rebuilds and runs the automated test suite before any deployment, and rejects project ids starting with `demo-`.
+
+The deployment runs using `GOOGLE_APPLICATION_CREDENTIALS` from the protected environment secret. Routine deployments do not require an interactive Google login or a Firebase connection in the chat. Credentials must still be replaced if revoked or rotated. Configure environment deployment branches to allow only `main`; required reviewers, if enabled, will intentionally pause each production run for approval.
 
 Run it from **Actions → Firebase Production Deploy → Run workflow** and choose `all` for the first deployment. After the first production verification, the narrower `hosting`, `functions`, or `rules` targets may be used when appropriate.
 
