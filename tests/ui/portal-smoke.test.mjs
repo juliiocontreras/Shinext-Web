@@ -13,8 +13,8 @@ test("worker portal exposes the five approved primary sections", () => {
 });
 
 test("worker portal keeps the official Shinext brand asset", () => {
-  assert.match(portalHtml, /\/brand\/shinext-logo-original\.webp/);
-  assert.match(loginHtml, /\/brand\/shinext-logo-original\.webp/);
+  assert.match(portalHtml, /\/brand\/shinext-logo\.webp/);
+  assert.match(loginHtml, /\/brand\/shinext-logo\.webp/);
 });
 
 test("portal guard requires worker role and active profile", () => {
