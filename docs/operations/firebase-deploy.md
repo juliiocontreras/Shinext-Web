@@ -1,79 +1,125 @@
-# Shinext Firebase deployment runbook
+# Runbook: despliegue de Shinext en Firebase
 
-## Purpose
+## Estado actual (2026-10-11)
 
-Deploy the tested Shinext web/PWA, Worker Portal, CRM, Firestore rules, Storage rules, indexes and Cloud Functions to the real Firebase project without committing credentials or project-specific secrets.
+| Elemento | Estado |
+|---|---|
+| Proyecto Firebase | `shinex-e0c1f` |
+| Hosting | Habilitado, **sin contenido desplegado** (`https://shinex-e0c1f.web.app` responde "Site Not Found") |
+| Backend (Firestore / Storage / Auth) | **Sin configurar**: API de Firestore deshabilitada, ningún bucket de Storage y Authentication sin inicializar |
+| Dominio público objetivo | `https://shinext.site` — **hoy sirve un sitio de GoDaddy Website Builder** (`A 13.248.243.5`, `76.223.105.230`); debe migrarse a Firebase |
+| Variable `FIREBASE_PROJECT_ID` (environment `production`) | Configurada: `shinex-e0c1f` |
+| Secreto `FIREBASE_SERVICE_ACCOUNT_JSON` | **Pendiente** — es la única causa del fallo del workflow de deploy |
+| `Firebase CI` (rama `main`) | Verde |
+| `Firebase Production Deploy` | Falla en 9 s en `Validate production configuration` (falta el secreto) |
+| SEO | `canonical`, `og:url` y `og:image` absolutos a `https://shinext.site`, con `sitemap.xml` y directiva `Sitemap` en `robots.txt` |
+| PWA | Iconos 192/512 + maskable, `apple-touch-icon` 180, `sw.js` en `shinext-shell-v6` |
 
-## Preconditions
+## Prerrequisitos del proyecto Firebase (verificar en la consola)
 
-1. The target Firebase project belongs to Shinext and the operator has the required Firebase permissions.
-2. Email/Password authentication is enabled.
-3. Firestore and Cloud Storage are created in the intended production region.
-4. The branch being deployed has a green **Firebase CI** workflow.
-5. The production Firebase web configuration is available for the public frontend.
-6. Candidate expediente paths remain private under the tested Storage rules.
+1. **Hosting** habilitado para el proyecto.
+2. **Cloud Firestore** creado en modo producción (la región no se puede cambiar después).
+3. **Cloud Storage** creado.
+4. **Authentication → Email/Password** habilitado (Portal del Trabajador y CRM).
+5. **Plan Blaze**: obligatorio para desplegar Cloud Functions (las funciones v2 usan Cloud Run y Artifact Registry).
+6. APIs que se habilitan en el primer deploy: Cloud Functions, Cloud Build, Artifact Registry, Cloud Run, Identity Toolkit y Firebase Rules.
 
-## Local project mapping
-
-Copy the example file without committing it:
-
-```bash
-cp .firebaserc.example .firebaserc
-```
-
-Replace the example project id in `.firebaserc` with the real Firebase project id.
-
-Authenticate using the Firebase CLI on the authorized machine:
-
-```bash
-firebase login
-firebase use <PROJECT_ID>
-```
-
-Never place service-account JSON, private keys, passwords or administrative tokens in this repository.
-
-## Pre-deploy verification
-
-Install and build:
+Comprobación sin credenciales:
 
 ```bash
-npm install
-npm --prefix functions install
-npm --prefix functions run build
-npm run emulators:exec
+curl -sI https://shinex-e0c1f.web.app/     # 404 "Site Not Found" = Hosting existe y está vacío
 ```
 
-The suite must pass before production deployment. Local tests use a project id prefixed with `demo-` so the Emulator Suite does not attempt production project lookups. It covers Firestore and Storage authorization, role boundaries, Worker Portal/CRM contracts, SEO metadata and the service lifecycle through Firebase emulators.
-
-## Frontend Firebase configuration
-
-When served from Firebase Hosting, the browser client automatically fetches the project's public web configuration from the reserved Hosting endpoint `/__/firebase/init.json`. This keeps the same code deployable across Firebase projects without embedding project-specific values in source control.
-
-`window.SHINEXT_FIREBASE_CONFIG` remains available only as an explicit override for nonstandard hosting or controlled diagnostics.
-
-Do not expose Admin SDK credentials, service-account JSON, private keys or administrative tokens.
-
-## Deployment order
-
-Deploy backend security and indexes first:
+Comprobación completa de los prerrequisitos (Hosting, dominio, Auth, Firestore y Storage):
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage
+FIREBASE_PROJECT_ID=shinex-e0c1f SHINEXT_API_KEY=<web api key> node scripts/production-preflight.mjs
 ```
 
-Then deploy Functions:
+La guía paso a paso en la consola, con enlaces directos, roles exactos y la región recomendada, está en
+[`firebase-console-setup.md`](firebase-console-setup.md).
+
+## Paso 1 — Credencial de despliegue (una sola vez)
+
+1. Abre `https://console.cloud.google.com/iam-admin/serviceaccounts?project=shinex-e0c1f`.
+2. **Crear cuenta de servicio** con el nombre `shinext-deployer`.
+3. Asígnale estos roles (mínimos para desplegar Hosting, reglas, índices y Functions):
+
+   | Rol | Para qué |
+   |---|---|
+   | `Firebase Hosting Admin` | publicar Hosting y canales |
+   | `Firebase Rules Admin` | reglas de Firestore y Storage |
+   | `Cloud Datastore Index Admin` | índices de Firestore |
+   | `Cloud Functions Admin` | funciones |
+   | `Cloud Run Admin` | contenedores de Functions v2 |
+   | `Service Account User` | que Functions use su propia cuenta de servicio |
+   | `Storage Admin` | reglas de Storage |
+
+   Si prefieres simplificar, `Firebase Admin` cubre todo el conjunto (con permisos de más).
+
+4. **Claves → Agregar clave → Crear clave nueva → JSON** y descarga el archivo. No lo subas al repositorio ni lo pegues en el chat.
+5. Carga el secreto en el environment `production`:
+
+   ```bash
+   gh secret set FIREBASE_SERVICE_ACCOUNT_JSON --env production \
+     --repo juliiocontreras/Shinext-Web < "ruta\a\shinex-e0c1f-clave.json"
+   ```
+
+   Alternativa por interfaz: GitHub → repo → Settings → Environments → `production` → *Add secret* → nombre `FIREBASE_SERVICE_ACCOUNT_JSON`, valor = contenido completo del JSON.
+
+6. Borra el archivo JSON local y, si la clave se filtra, revócala en GCP y repite el paso 4.
+
+## Paso 2 — Migrar `shinext.site` a Firebase Hosting
+
+El dominio hoy apunta a GoDaddy Website Builder; al cambiarlo, ese sitio deja de servirse.
+
+1. Firebase Console → **Hosting → Agregar dominio personalizado** → `shinext.site` (repite para `www.shinext.site`).
+2. Copia los registros que muestre la consola. **Los valores de la consola son los que mandan**; los habituales son:
+   - `A` → `151.101.1.195` y `A` → `151.101.65.195`
+   - `TXT` (solo verificación) → el valor `google-site-verification=...` de la consola
+3. En el DNS de GoDaddy, reemplaza los dos `A` actuales por los de Firebase y agrega el `TXT`. Mantén `www` como `CNAME` a `shinext.site` (o al valor que indique la consola).
+4. Espera la propagación y la emisión del certificado SSL (puede tardar hasta 24 h).
+5. Desconecta el sitio de GoDaddy Website Builder para no dejar contenido duplicado en el dominio.
+6. Verifica que el dominio ya sirve Firebase Hosting:
+
+   ```bash
+   curl -s https://shinext.site/__/firebase/init.json    # debe devolver {"projectId":"shinex-e0c1f",...}
+   ```
+
+7. Verifica el dominio propio. Los smoke checks automáticos del workflow usan `https://shinex-e0c1f.web.app`; para el dominio propio, ejecuta el script a mano:
+
+   ```bash
+   node scripts/production-smoke.mjs https://shinext.site
+   ```
+
+   El script exige que `https://dominio/__/firebase/init.json` responda, así que también sirve para comprobar que el DNS ya apunta a Firebase y no a GoDaddy.
+
+## Paso 3 — Primer despliegue
+
+Ejecuta antes `node scripts/production-preflight.mjs`: no debe reportar fallos.
+
+Usa `workflow_dispatch` la primera vez, no un push:
+
+1. **Actions → Firebase Production Deploy → Run workflow** con `deploy_target = hosting`.
+   Publica la web y la PWA sin tocar Firestore, Storage ni Functions.
+2. Revisa `https://shinex-e0c1f.web.app` y el smoke de Hosting que ejecuta el workflow.
+3. Repite con `rules` (reglas + índices + Storage) y luego con `functions`.
+4. Solo cuando todo esté verificado, usa `all` o deja que un push a `main` despliegue todo.
+
+Cualquier push a `main` dispara el deploy completo (`all`). Si el backend todavía no está configurado, ese push falla y **no publica nada**; por eso el primer despliegue se hace por partes.
+
+## Paso 4 — Verificación de producción
 
 ```bash
-firebase deploy --only functions
+node scripts/production-smoke.mjs https://shinext.site
 ```
 
-Finally deploy Hosting:
+Después:
 
-```bash
-firebase deploy --only hosting
-```
-
-A combined deploy can be used only after the first production verification is complete.
+- Completar los smoke checks de la sección siguiente.
+- Lighthouse en móvil: instalable (PWA), LCP < 2.5 s, CLS < 0.1.
+- Google Search Console: verificar `shinext.site` y enviar `https://shinext.site/sitemap.xml`.
+- Probar el flujo real: solicitud pública → CRM → asignación → Portal del Trabajador con datos de prueba.
 
 ## Production smoke checks
 
@@ -95,49 +141,38 @@ After deployment verify:
 14. A Blog video added from CRM accepts only supported YouTube/TikTok URLs.
 15. Banner fallback remains visible if Firestore content is unavailable.
 
-## Custom domain and SEO
-
-Do not publish a production `sitemap.xml` with placeholder URLs.
-
-Once the final Firebase Hosting or custom domain is confirmed:
-
-1. Update canonical and Open Graph URLs to absolute production URLs.
-2. Generate `sitemap.xml` with production URLs.
-3. Add the Sitemap directive to `robots.txt`.
-4. Verify the domain in Google Search Console.
-5. Validate Article and eligible VideoObject structured data.
-6. Submit the sitemap.
-
 ## Rollback
 
 Hosting:
 
 ```bash
-firebase hosting:channel:list
+firebase hosting:releases:list --project shinex-e0c1f
+firebase hosting:rollback --project shinex-e0c1f
 ```
 
-Use Firebase Hosting release history to roll back to the last known-good release.
+Antes de promover, puedes publicar en un canal de preview:
 
-For rules or Functions, redeploy the previous known-good Git commit. Do not manually weaken rules as an emergency workaround.
+```bash
+firebase hosting:channel:deploy preview --project shinex-e0c1f
+```
 
-## Migration note
+Para reglas o Functions: vuelve a desplegar el commit conocido como bueno (`workflow_dispatch` sobre ese commit). Nunca debilites las reglas como parche de emergencia.
 
-Netlify configuration is legacy transition material. Firebase Hosting becomes authoritative only after the real Firebase project is connected, CI is green, the production smoke checks pass and the public domain is confirmed.
+## Deuda conocida (post-lanzamiento)
 
+1. **CSP completa.** `firebase.json` aplica `frame-ancestors`, `object-src` y `base-uri`, pero no restringe `script-src` ni `connect-src`. Antes de endurecerla hay que probar CRM y Portal en un canal de preview, porque el SDK de Firebase carga módulos desde `https://www.gstatic.com` y llama a `*.googleapis.com`, `*.firebaseio.com` (wss) y `*.cloudfunctions.net`.
+2. **Asset de marca.** El `brand/shinext-logo-original.webp` original estaba corrupto: su chunk VP8L mide 14075 bytes (impar) y le faltaba el byte de padding RIFF, por lo que los decodificadores estrictos (libwebp/Pillow, ffmpeg) rechazaban el archivo completo y el logo no habría renderizado. Se recuperó el wordmark y el sitio usa ahora `brand/shinext-logo.webp` + iconos PNG. **Si tienes el original en SVG/PNG, súbelo**: los iconos y la imagen OG se regeneran a partir de él.
+3. **Analytics.** El proyecto tiene `measurementId` `G-XGY4XZ8BZD`, pero la PWA todavía no carga `firebase-analytics` (solo usa `window.dataLayer` para eventos locales). Activarlo requiere importar el SDK y ampliar la CSP.
+4. **Service worker.** `sw.js` responde primero desde caché para las rutas de `SHELL`; cada cambio en `styles.css`, `app.js`, HTML público o assets de `SHELL` exige subir `CACHE` (`shinext-shell-v6` → `v7`).
+5. **Netlify (coexistencia).** El repo sigue conectado al proyecto Netlify `shinext`, que publica la raíz en `https://shinext.netlify.app` desde `main` y crea un deploy preview en cada PR. Sirve bien la web pública, pero **`/portal/` y `/crm/` no pueden funcionar ahí**: el cliente obtiene su configuración de Firebase desde `/__/firebase/init.json`, una ruta reservada que solo existe en Firebase Hosting (verificado: 404 en el deploy preview). `scripts/production-smoke.mjs` tampoco puede pasar en Netlify porque exige `/api/healthz`, que vive en Cloud Functions. Cuando Firebase Hosting esté verificado, desconecta Netlify o limita su rama de producción para no publicar dos copias del sitio; `netlify.toml` puede eliminarse entonces (sus cabeceras ya están en `firebase.json`).
+6. **Smoke checks contra el dominio propio.** Para que el workflow use `shinext.site` como URL base hace falta editar `.github/workflows/firebase-deploy.yml` (leer `SHINEXT_SITE_URL`), pero GitHub rechaza escribir `.github/workflows/**` con un token sin el scope `workflow`. Para habilitarlo:
 
-## GitHub Actions production deployment
+   ```bash
+   gh auth refresh -h github.com -s workflow
+   ```
 
-The repository includes an automatic production workflow at `.github/workflows/firebase-deploy.yml`. Every push to `main` runs the validation, build and test gates, then deploys all configured Firebase services. Pull requests run Firebase CI without deploying production.
+## Reglas de configuración
 
-Before the first production deploy, configure the GitHub **production** environment with:
-
-- Repository/environment variable `FIREBASE_PROJECT_ID`: the real Shinext Firebase project id.
-- Environment secret `FIREBASE_SERVICE_ACCOUNT_JSON`: JSON credentials for a dedicated deployment service account with only the Firebase/GCP permissions required to deploy Hosting, Firestore rules/indexes, Storage rules and Cloud Functions.
-
-The workflow checks that the project id and deployment secret are present before installing dependencies. It always rebuilds and runs the automated test suite before any deployment, and rejects project ids starting with `demo-`.
-
-The deployment runs using `GOOGLE_APPLICATION_CREDENTIALS` from the protected environment secret. Routine deployments do not require an interactive Google login or a Firebase connection in the chat. Credentials must still be replaced if revoked or rotated. Configure environment deployment branches to allow only `main`; required reviewers, if enabled, will intentionally pause each production run for approval.
-
-Run it from **Actions → Firebase Production Deploy → Run workflow** and choose `all` for the first deployment. After the first production verification, the narrower `hosting`, `functions`, or `rules` targets may be used when appropriate.
-
-Prefer short-lived federation credentials in the future if Shinext adopts Google Cloud Workload Identity Federation; the current service-account secret is an explicit first-release deployment mechanism and must remain inside the protected GitHub production environment.
+- `FIREBASE_PROJECT_ID` es una variable del environment `production`. `SHINEXT_SITE_URL` solo se usará cuando el workflow pueda leerla (ver deuda conocida 6).
+- `FIREBASE_SERVICE_ACCOUNT_JSON` es un secreto del environment `production`; nunca en el repositorio ni en `firebase.json`.
+- El cliente web obtiene la configuración pública desde `/__/firebase/init.json`, así que **no** se versionan claves ni se hardcodea `firebaseConfig`. `window.SHINEXT_FIREBASE_CONFIG` queda solo como override explícito.

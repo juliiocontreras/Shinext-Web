@@ -3,3 +3,5 @@ Allow: /
 Disallow: /crm/
 Disallow: /portal/
 Disallow: /admin/
+
+Sitemap: https://shinext.site/sitemap.xml

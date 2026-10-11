@@ -20,7 +20,7 @@ test("CRM navigation honors permission grants and revokes",()=>{
 });
 
 test("CRM keeps official Shinext logo asset",()=>{
- assert.match(html,/\/brand\/shinext-logo-original\.webp/);
+ assert.match(html,/\/brand\/shinext-logo\.webp/);
 });
 
 test("CRM content module is permission-aware and wired to managed content",()=>{
