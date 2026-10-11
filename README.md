@@ -13,7 +13,7 @@ GitHub es la fuente de verdad. La plataforma está migrando a Firebase:
 - Cloud Functions: operaciones privilegiadas y auditoría.
 - Firebase Emulator Suite: desarrollo y pruebas locales.
 
-Mientras no exista un despliegue Firebase de producción verificado, la configuración previa de Netlify se conserva únicamente como legado de transición.
+Mientras no exista un despliegue Firebase de producción verificado, la configuración previa de Netlify se conserva únicamente como legado de transición. Hoy el proyecto Netlify `shinext` ya publica la web pública en `https://shinext.netlify.app` desde `main`, pero **el Portal del Trabajador y el CRM no funcionan ahí**: el cliente lee su configuración de Firebase en `/__/firebase/init.json`, que solo existe en Firebase Hosting. Esos módulos requieren el despliegue en Firebase.
 
 ## Estado de publicación (2026-10-11)
 
