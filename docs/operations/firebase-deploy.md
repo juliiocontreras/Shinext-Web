@@ -6,6 +6,7 @@
 |---|---|
 | Proyecto Firebase | `shinex-e0c1f` |
 | Hosting | Habilitado, **sin contenido desplegado** (`https://shinex-e0c1f.web.app` responde "Site Not Found") |
+| Backend (Firestore / Storage / Auth) | **Sin configurar**: API de Firestore deshabilitada, ningún bucket de Storage y Authentication sin inicializar |
 | Dominio público objetivo | `https://shinext.site` — **hoy sirve un sitio de GoDaddy Website Builder** (`A 13.248.243.5`, `76.223.105.230`); debe migrarse a Firebase |
 | Variable `FIREBASE_PROJECT_ID` (environment `production`) | Configurada: `shinex-e0c1f` |
 | Secreto `FIREBASE_SERVICE_ACCOUNT_JSON` | **Pendiente** — es la única causa del fallo del workflow de deploy |
@@ -28,6 +29,15 @@ Comprobación sin credenciales:
 ```bash
 curl -sI https://shinex-e0c1f.web.app/     # 404 "Site Not Found" = Hosting existe y está vacío
 ```
+
+Comprobación completa de los prerrequisitos (Hosting, dominio, Auth, Firestore y Storage):
+
+```bash
+FIREBASE_PROJECT_ID=shinex-e0c1f SHINEXT_API_KEY=<web api key> node scripts/production-preflight.mjs
+```
+
+La guía paso a paso en la consola, con enlaces directos, roles exactos y la región recomendada, está en
+[`firebase-console-setup.md`](firebase-console-setup.md).
 
 ## Paso 1 — Credencial de despliegue (una sola vez)
 
@@ -85,6 +95,8 @@ El dominio hoy apunta a GoDaddy Website Builder; al cambiarlo, ese sitio deja de
    El script exige que `https://dominio/__/firebase/init.json` responda, así que también sirve para comprobar que el DNS ya apunta a Firebase y no a GoDaddy.
 
 ## Paso 3 — Primer despliegue
+
+Ejecuta antes `node scripts/production-preflight.mjs`: no debe reportar fallos.
 
 Usa `workflow_dispatch` la primera vez, no un push:
 

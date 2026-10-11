@@ -27,6 +27,15 @@ Mientras no exista un despliegue Firebase de producción verificado, la configur
 Los pasos exactos, prerrequisitos, verificación y rollback están en
 [`docs/operations/firebase-deploy.md`](docs/operations/firebase-deploy.md).
 
+Antes de desplegar, comprueba el proyecto y sigue la guía de configuración del backend:
+
+```bash
+FIREBASE_PROJECT_ID=shinex-e0c1f SHINEXT_API_KEY=<web api key> node scripts/production-preflight.mjs
+```
+
+- Estado verificado el 2026-10-11: Hosting vacío, API de Firestore deshabilitada, ningún bucket de Storage y Auth sin configurar.
+- Pasos en la consola (Blaze, Firestore, Storage, Auth, cuenta de servicio y DNS): [`docs/operations/firebase-console-setup.md`](docs/operations/firebase-console-setup.md).
+
 ## Desarrollo local de Firebase
 
 Requisitos: Node.js 20+ y Java 21 recomendado para los emuladores.
