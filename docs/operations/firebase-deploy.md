@@ -5,13 +5,13 @@
 | Elemento | Estado |
 |---|---|
 | Proyecto Firebase | `shinex-e0c1f` |
-| Hosting | Habilitado, **sin contenido desplegado** (`https://shinex-e0c1f.web.app` responde "Site Not Found") |
-| Backend (Firestore / Storage / Auth) | **Sin configurar**: API de Firestore deshabilitada, ningún bucket de Storage y Authentication sin inicializar |
+| Hosting | **Desplegado** con el contenido de `main` en `https://shinex-e0c1f.web.app` (el proyecto también tiene el sitio `shinext.web.app`, sin usar) |
+| Backend (Firestore / Storage / Auth) | **Bloqueado por facturación**: el proyecto no tiene cuenta de facturación (`The billing account for the owning project is disabled in state absent`), la API de Firestore está deshabilitada, no existe bucket de Storage y Authentication no está inicializado |
 | Dominio público objetivo | `https://shinext.site` — **hoy sirve un sitio de GoDaddy Website Builder** (`A 13.248.243.5`, `76.223.105.230`); debe migrarse a Firebase |
 | Variable `FIREBASE_PROJECT_ID` (environment `production`) | Configurada: `shinex-e0c1f` |
-| Secreto `FIREBASE_SERVICE_ACCOUNT_JSON` | **Pendiente** — es la única causa del fallo del workflow de deploy |
+| Secreto `FIREBASE_SERVICE_ACCOUNT_JSON` | Configurado en el environment `production`; la cuenta `firebase-adminsdk-fbsvc` desplegó Hosting correctamente (47 archivos) |
 | `Firebase CI` (rama `main`) | Verde |
-| `Firebase Production Deploy` | Falla en 9 s en `Validate production configuration` (falta el secreto) |
+| `Firebase Production Deploy` | La validación del secreto ya pasa; el despliegue completo seguirá fallando hasta que exista Blaze, Firestore, Storage y Functions |
 | SEO | `canonical`, `og:url` y `og:image` absolutos a `https://shinext.site`, con `sitemap.xml` y directiva `Sitemap` en `robots.txt` |
 | PWA | Iconos 192/512 + maskable, `apple-touch-icon` 180, `sw.js` en `shinext-shell-v6` |
 

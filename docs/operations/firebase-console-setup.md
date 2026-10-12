@@ -9,9 +9,9 @@ Comprobado con `scripts/production-preflight.mjs` (endpoints públicos, sin cred
 
 | Servicio | Estado | Qué falta |
 |---|---|---|
-| Hosting | Existe, sin despliegue (`shinex-e0c1f.web.app` responde "Site Not Found") | Desplegar |
+| Hosting | **Desplegado** en `https://shinex-e0c1f.web.app`; el script `production-preflight.mjs` lo reporta `OK` | Nada |
 | Cloud Firestore | **API deshabilitada / sin base de datos** | Crear la base |
-| Cloud Storage | **El bucket `shinex-e0c1f.firebasestorage.app` no existe** | Activar Storage |
+| Cloud Storage | **El bucket `shinex-e0c1f.firebasestorage.app` no existe**; crearlo devuelve 403 `billing account ... disabled in state absent` | **Activar Blaze** |
 | Authentication | **Sin configurar** (`CONFIGURATION_NOT_FOUND`) | Habilitar Email/Password |
 | Dominio `shinext.site` | Sirve GoDaddy Website Builder | Migrar el DNS |
 
@@ -20,7 +20,9 @@ Comprobado con `scripts/production-preflight.mjs` (endpoints públicos, sin cred
 - **Plan Blaze obligatorio**: Cloud Storage for Firebase y Cloud Functions ya no funcionan en Spark para proyectos nuevos.
 - **Región `us-central1`** para Firestore y Storage: coincide con la región de las Cloud Functions (`us-central1` en `firebase.json` y `firebase-client.js`). Firestore **no permite cambiar la ubicación después**.
 
-## Paso 1 — Activar Blaze
+> **Estado 2026-10-11 (tarde):** Hosting ya está desplegado y el secreto `FIREBASE_SERVICE_ACCOUNT_JSON` ya está cargado en el environment `production` con la clave `firebase-adminsdk-fbsvc` que estaba en Descargas. Lo que queda es Blaze (paso 1), Authentication (paso 4), Firestore (paso 2), desplegar reglas y Functions, y el DNS (paso 7). La cuenta de servicio existente **no** necesita reemplazarse: ya despliega Hosting; solo necesita los roles del paso 5 para reglas, índices, Storage y Functions.
+
+## Paso 1 — Activar Blaze (único bloqueo duro)
 
 1. Abre https://console.firebase.google.com/project/shinex-e0c1f/usage/details
 2. **Modificar plan → Blaze (de pago por uso)** y vincula una cuenta de facturación.
