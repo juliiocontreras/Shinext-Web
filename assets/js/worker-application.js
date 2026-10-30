@@ -23,10 +23,13 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 if (!firebaseCapabilities.storage) {
-  if (submit) submit.disabled = true;
+  document.querySelectorAll('input[type="file"]').forEach((input) => {
+    input.required = false;
+    input.disabled = true;
+  });
   setTimeout(() => {
     setStatus(
-      "La recepción de expedientes con documentos está temporalmente pausada mientras Shinext opera en modo gratuito de Firebase. Tus datos no se enviarán parcialmente.",
+      "Puedes crear tu perfil ahora. La carga de documentos quedará pendiente para una etapa posterior de verificación.",
       "info",
     );
   }, 0);
@@ -86,13 +89,6 @@ async function uploadDocument(applicationId, type, file, ownerUid) {
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  if (!firebaseCapabilities.storage) {
-    setStatus(
-      "Esta solicitud requiere almacenamiento seguro de documentos, no disponible en modo gratuito de Firebase.",
-      "error",
-    );
-    return;
-  }
   statusBox.dataset.visible = "false";
 
   if (!form.checkValidity()) {
@@ -106,9 +102,11 @@ form?.addEventListener("submit", async (event) => {
   const studiesFile = data.get("studiesDocument");
 
   try {
-    validateFile(identityFile, true);
-    validateFile(addressFile, true);
-    validateFile(studiesFile?.size ? studiesFile : null, false);
+    if (firebaseCapabilities.storage) {
+      validateFile(identityFile, true);
+      validateFile(addressFile, true);
+      validateFile(studiesFile?.size ? studiesFile : null, false);
+    }
 
     submit.disabled = true;
     submit.textContent = "Enviando expediente…";
@@ -135,30 +133,34 @@ form?.addEventListener("submit", async (event) => {
 
     await setDoc(applicationRef, baseApplication);
 
-    const [identity, address, studies] = await Promise.all([
-      uploadDocument(applicationRef.id, "identity", identityFile, user.uid),
-      uploadDocument(applicationRef.id, "address", addressFile, user.uid),
-      uploadDocument(
-        applicationRef.id,
-        "studies",
-        studiesFile?.size ? studiesFile : null,
-        user.uid,
-      ),
-    ]);
+    if (firebaseCapabilities.storage) {
+      const [identity, address, studies] = await Promise.all([
+        uploadDocument(applicationRef.id, "identity", identityFile, user.uid),
+        uploadDocument(applicationRef.id, "address", addressFile, user.uid),
+        uploadDocument(
+          applicationRef.id,
+          "studies",
+          studiesFile?.size ? studiesFile : null,
+          user.uid,
+        ),
+      ]);
 
-    await updateDoc(applicationRef, {
-      documents: {
-        identity,
-        address,
-        studies,
-      },
-      documentsPending: false,
-      updatedAt: serverTimestamp(),
-    });
+      await updateDoc(applicationRef, {
+        documents: {
+          identity,
+          address,
+          studies,
+        },
+        documentsPending: false,
+        updatedAt: serverTimestamp(),
+      });
+    }
 
     form.reset();
     setStatus(
-      "Solicitud recibida. Reclutamiento Shinext revisará tu expediente y se pondrá en contacto contigo.",
+      firebaseCapabilities.storage
+        ? "Solicitud recibida. Reclutamiento Shinext revisará tu expediente y se pondrá en contacto contigo."
+        : "Perfil recibido. Reclutamiento Shinext revisará tus datos y te indicará cómo completar la verificación documental.",
       "success",
     );
   } catch (error) {
