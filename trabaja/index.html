@@ -75,10 +75,17 @@
             <option value="variable">Horario variable</option>
           </select>
         </label>
-        <label class="check-row">
-          <input name="hasOwnSupplies" type="checkbox">
-          <span>Actualmente cuento con algunos productos o herramientas propias.</span>
-        </label>
+        <fieldset class="provider-mode-fieldset">
+          <legend>Modalidad de trabajo</legend>
+          <label class="provider-mode-card">
+            <input name="serviceMode" type="radio" value="independent" required checked>
+            <span><strong>Prestador independiente</strong><small>Tú llevas los insumos del checklist. Conservas 85% del servicio; Shinext 15%.</small></span>
+          </label>
+          <label class="provider-mode-card">
+            <input name="serviceMode" type="radio" value="shinext_partner" required>
+            <span><strong>Shinext Partner</strong><small>Shinext provee los insumos requeridos. Conservas 80% del servicio; Shinext 20%.</small></span>
+          </label>
+        </fieldset>
       </div>
 
       <div class="form-section">
