@@ -9,7 +9,11 @@ const script = await readFile(
 
 test("hosting-only smoke check validates public and private shells", () => {
   for (const path of ["/", "/blog/", "/portal/", "/crm/"]) {
-    assert.match(script, new RegExp(`expectHtml\\(\"\\${path.replaceAll("/", "\\/")}\"`));
+    assert.equal(
+      script.includes(`expectHtml("${path}"`),
+      true,
+      `missing Hosting smoke check for ${path}`,
+    );
   }
 });
 
