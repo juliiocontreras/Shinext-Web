@@ -22,6 +22,7 @@ type ApplicationRecord = {
   experience?: string;
   availability?: string;
   hasOwnSupplies?: boolean;
+  serviceMode?: "independent" | "shinext_partner";
   documentsPending?: boolean;
   documents?: {
     identity?: unknown;
@@ -183,7 +184,9 @@ export const approveWorker = onCall(async (request) => {
         zone: current.zone || "",
         experience: current.experience || "",
         availabilityPreference: current.availability || "",
-        hasOwnSupplies: Boolean(current.hasOwnSupplies),
+        serviceMode: current.serviceMode === "shinext_partner" ? "shinext_partner" : "independent",
+        commissionRate: current.serviceMode === "shinext_partner" ? 0.2 : 0.15,
+        hasOwnSupplies: current.serviceMode === "shinext_partner" ? false : Boolean(current.hasOwnSupplies),
         active: true,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
