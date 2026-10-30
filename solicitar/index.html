@@ -19,7 +19,9 @@
   <span>Completa los datos del servicio. Shinext buscará al prestador compatible con tu zona y horario.</span>
 </section>
 <form id="service-request-form" class="request-card">
-  <div class="form-grid">
+  <section class="request-step" aria-labelledby="request-step-service">
+    <div class="request-step-head"><span>1</span><div><p>Paso 1 de 3</p><h2 id="request-step-service">1. Servicio</h2></div></div>
+    <div class="form-grid">
     <label>Tipo de servicio
       <select name="serviceType" required>
         <option value="">Selecciona</option>
@@ -68,13 +70,21 @@
         <option value="shinext">Shinext provee insumos</option>
       </select>
     </label>
-  </div>
-  <label>Indicaciones <small>(opcional)</small><textarea name="details" maxlength="700" rows="4" placeholder="Mascotas, estacionamiento, áreas prioritarias..."></textarea></label>
-  <div class="form-grid">
+    </div>
+  </section>
+  <section class="request-step" aria-labelledby="request-step-schedule">
+    <div class="request-step-head"><span>2</span><div><p>Paso 2 de 3</p><h2 id="request-step-schedule">2. Fecha y preferencias</h2></div></div>
+    <label>Indicaciones <small>(opcional)</small><textarea name="details" maxlength="700" rows="4" placeholder="Mascotas, estacionamiento, áreas prioritarias..."></textarea></label>
+  </section>
+  <section class="request-step" aria-labelledby="request-step-contact">
+    <div class="request-step-head"><span>3</span><div><p>Paso 3 de 3</p><h2 id="request-step-contact">3. Tus datos</h2></div></div>
+    <div class="form-grid">
     <label>Tu nombre<input name="clientName" required maxlength="120" autocomplete="name"></label>
     <label>Teléfono<input name="clientPhone" required maxlength="20" inputmode="tel" autocomplete="tel"></label>
     <label>Correo <small>(opcional)</small><input name="clientEmail" type="email" maxlength="160" autocomplete="email"></label>
-  </div>
+    </div>
+  </section>
+  <p class="request-assurance"><strong>No se realiza ningún cargo en este paso.</strong> Primero confirmaremos disponibilidad, precio y prestador.</p>
   <label class="consent"><input name="consent" type="checkbox" required><span>Acepto que Shinext use estos datos para coordinar y dar seguimiento a mi solicitud.</span></label>
   <button id="request-submit" type="submit">Solicitar limpieza</button>
   <div id="request-status" class="request-status" role="status" aria-live="polite"></div>
