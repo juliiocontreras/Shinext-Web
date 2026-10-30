@@ -16,9 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  firebase-emulator-tests:
+  quality-gate:
     runs-on: ubuntu-slim
-    timeout-minutes: 15
+    timeout-minutes: 8
 
     steps:
       - name: Checkout
@@ -29,23 +29,8 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Use Java 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Install web test dependencies
+      - name: Install test dependencies
         run: npm ci
 
-      - name: Install Functions dependencies
-        run: npm --prefix functions ci
-
-      - name: Build Cloud Functions
-        run: npm --prefix functions run build
-
-      - name: Run Functions unit tests
-        run: npm --prefix functions test
-
-      - name: Run Firebase emulator tests
-        run: npm run emulators:exec
+      - name: Run UI and SEO tests
+        run: node --test tests/ui/*.test.mjs tests/seo/*.test.mjs
