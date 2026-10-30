@@ -13,7 +13,7 @@ import {
   uploadBytes,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
-import { auth, db, storage } from "./firebase-client.js";
+import { auth, db, firebaseCapabilities, storage } from "./firebase-client.js";
 
 const form = document.querySelector("#worker-application-form");
 const submit = document.querySelector("#application-submit");
@@ -21,6 +21,16 @@ const statusBox = document.querySelector("#application-status");
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+
+if (!firebaseCapabilities.storage) {
+  if (submit) submit.disabled = true;
+  setTimeout(() => {
+    setStatus(
+      "La recepción de expedientes con documentos está temporalmente pausada mientras Shinext opera en modo gratuito de Firebase. Tus datos no se enviarán parcialmente.",
+      "info",
+    );
+  }, 0);
+}
 
 function setStatus(message, kind = "info") {
   statusBox.textContent = message;
@@ -75,6 +85,14 @@ async function uploadDocument(applicationId, type, file, ownerUid) {
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (!firebaseCapabilities.storage) {
+    setStatus(
+      "Esta solicitud requiere almacenamiento seguro de documentos, no disponible en modo gratuito de Firebase.",
+      "error",
+    );
+    return;
+  }
   statusBox.dataset.visible = "false";
 
   if (!form.checkValidity()) {
