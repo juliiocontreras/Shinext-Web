@@ -13,10 +13,11 @@ test("production defaults billing-backed Firebase capabilities off while emulato
   assert.match(client, /storage:\s*isLocal\s*\|\|/);
 });
 
-test("worker application blocks document submission when Storage is unavailable", () => {
+test("worker application accepts profile signup and defers documents when Storage is unavailable", () => {
   assert.match(application, /firebaseCapabilities/);
   assert.match(application, /firebaseCapabilities\.storage/);
-  assert.match(application, /modo gratuito|modo Spark/i);
+  assert.match(application, /documentos quedará pendiente|verificación documental/i);
+  assert.match(application, /input\[type="file"\]/);
 });
 
 test("portal callables fail closed when Functions are unavailable", () => {
