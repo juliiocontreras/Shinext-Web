@@ -85,6 +85,20 @@
     <label>Indicaciones <small>(opcional)</small>
       <textarea name="details" maxlength="700" rows="4" placeholder="Mascotas, estacionamiento, áreas prioritarias..."></textarea>
     </label>
+
+    <div id="quote-preview" class="quote-preview">
+      <div>
+        <small>Precio estimado</small>
+        <strong id="quote-preview-price">Aún no calculado</strong>
+        <span id="quote-preview-detail">Calcula el precio antes de continuar.</span>
+      </div>
+      <button id="quote-button" class="quote-button" type="button">Ver precio estimado</button>
+    </div>
+
+    <label id="quote-acceptance" class="quote-acceptance" hidden>
+      <input name="quoteAccepted" type="checkbox">
+      <span>Acepto el precio estimado mostrado para esta solicitud.</span>
+    </label>
   </section>
 
   <section class="request-step" aria-labelledby="request-step-contact">
@@ -104,7 +118,7 @@
 
   <p class="request-assurance"><strong>No se realiza ningún cargo en este paso.</strong> Primero confirmaremos disponibilidad, precio y prestador.</p>
   <label class="consent"><input name="consent" type="checkbox" required><span>Acepto que Shinext use estos datos para coordinar y dar seguimiento a mi solicitud.</span></label>
-  <button id="request-submit" type="submit">Enviar solicitud</button>
+  <button id="request-submit" type="submit" disabled>Confirmar y solicitar</button>
   <div id="request-status" class="request-status" role="status" aria-live="polite"></div>
 </form>
 
