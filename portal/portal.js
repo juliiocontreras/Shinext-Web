@@ -5,11 +5,13 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
   where,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import {
@@ -145,8 +147,21 @@ function setView(viewName) {
 function hydrateWorker(worker) {
   const name = document.querySelector("#worker-name");
   const zone = document.querySelector("#worker-zone");
+  const modeBadge = document.querySelector("#worker-mode-badge");
+  const supplyHelper = document.querySelector("#supply-mode-helper");
+  const partner = worker.serviceMode === "shinext_partner";
+  document.body.dataset.providerMode = partner ? "shinext_partner" : "independent";
   if (name) name.textContent = String(worker.fullName || "bienvenido").split(" ")[0];
   if (zone) zone.textContent = worker.zone ? `Zona registrada: ${worker.zone}` : "";
+  if (modeBadge) modeBadge.textContent = partner ? "Shinext Partner · 80%" : "Independiente · 85%";
+  if (supplyHelper) {
+    supplyHelper.textContent = partner
+      ? "Shinext provee tus insumos. Reporta aquí cualquier faltante antes de tu siguiente servicio."
+      : "Tú provees tus insumos. Usa el checklist para preparar cada servicio; las solicitudes a Compras están reservadas para Shinext Partners.";
+  }
+  document.querySelectorAll("[data-supply-category]").forEach(button => {
+    button.disabled = !partner;
+  });
 }
 
 function formatMoney(value) {
@@ -436,12 +451,22 @@ function renderServices(services) {
   });
 }
 
+function renderSupplyChecklists(checklists) {
+  const root = document.querySelector("#service-supply-checklist");
+  if (!root) return;
+  const active = checklists.filter(item => item.active !== false);
+  root.innerHTML = active.length
+    ? active.map(item => `<article class="checklist-entry"><strong>${escapeHtml(item.title || item.serviceType || "Checklist")}</strong><small>${escapeHtml(item.serviceType || "Servicio de limpieza")}</small><ul>${(Array.isArray(item.items) ? item.items : []).map(value => `<li>${escapeHtml(value)}</li>`).join("")}</ul></article>`).join("")
+    : '<p class="section-helper">Compras todavía no ha publicado checklists.</p>';
+}
+
 async function loadWorkerOperations(user) {
-  const [offersSnapshot, servicesSnapshot, earningsSnapshot, suppliesSnapshot] = await Promise.all([
+  const [offersSnapshot, servicesSnapshot, earningsSnapshot, suppliesSnapshot, checklistSnapshot] = await Promise.all([
     getDocs(query(collection(db, "serviceOffers"), where("workerUid", "==", user.uid))),
     getDocs(query(collection(db, "services"), where("assignedWorkerUid", "==", user.uid))),
     getDocs(query(collection(db, "workerEarnings"), where("workerUid", "==", user.uid))),
     getDocs(query(collection(db, "supplyRequests"), where("workerUid", "==", user.uid))),
+    getDocs(collection(db, "supplyChecklists")),
   ]);
 
   const offers = offersSnapshot.docs
@@ -477,6 +502,7 @@ async function loadWorkerOperations(user) {
   renderServices(services);
   renderEarnings(earnings);
   renderSupplyRequests(supplies);
+  renderSupplyChecklists(checklistSnapshot.docs.map(document => ({ id: document.id, ...document.data() })));
 }
 
 async function handleOfferAction(event) {
@@ -669,10 +695,29 @@ async function initPortal() {
     setStatus(supplyStatus, "Enviando aviso a Compras…", "info");
 
     try {
-      const result = await createSupplyRequest({ category, item, quantity, note });
-      const requestId = result.data.requestId;
+      if (document.body.dataset.providerMode !== "shinext_partner") {
+        throw new Error("Las solicitudes de insumos están disponibles únicamente para Shinext Partners.");
+      }
 
-      if (photo) {
+      let requestId;
+      if (firebaseCapabilities.functions) {
+        const result = await createSupplyRequest({ category, item, quantity, note });
+        requestId = result.data.requestId;
+      } else {
+        const requestRef = await addDoc(collection(db, "supplyRequests"), {
+          workerUid: auth.currentUser.uid,
+          category,
+          item,
+          quantity,
+          note,
+          status: "reported",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        requestId = requestRef.id;
+      }
+
+      if (photo && firebaseCapabilities.storage) {
         if (photo.size > 8 * 1024 * 1024) {
           throw new Error("La foto supera el máximo de 8 MB.");
         }
