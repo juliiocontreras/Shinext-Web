@@ -8,6 +8,8 @@ const submit=document.querySelector("#request-submit");
 const statusBox=document.querySelector("#request-status");
 const success=document.querySelector("#request-success");
 const folio=document.querySelector("#request-folio");
+const requestPrice=document.querySelector("#request-price");
+const trackingLink=document.querySelector("#request-tracking-link");
 const requestedDate=form?.elements?.requestedDate;
 const serviceSelect=form?.elements?.serviceType;
 
@@ -79,6 +81,12 @@ form?.addEventListener("submit",async event=>{
     form.hidden=true;
     success.hidden=false;
     folio.textContent=result.folio||String(result.id||"").slice(0,8).toUpperCase();
+    if(requestPrice&&Number(result.clientPrice||0)>0){
+      requestPrice.textContent=new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(result.clientPrice);
+    }
+    if(trackingLink&&result.trackingToken){
+      trackingLink.href=`/seguimiento/?token=${encodeURIComponent(result.trackingToken)}`;
+    }
     const successText=success.querySelector("p");
     if(successText&&Number(result.matched||0)>0){
       successText.insertAdjacentText("beforeend", ` Encontramos ${result.matched} prestador(es) compatibles para iniciar la asignación.`);
