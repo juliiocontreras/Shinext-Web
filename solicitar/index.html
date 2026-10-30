@@ -111,8 +111,14 @@
 <section id="request-success" class="success-card" hidden>
   <span>✓</span>
   <h2>Solicitud recibida</h2>
-  <p>Tu folio es <strong id="request-folio"></strong>. Te contactaremos para confirmar disponibilidad, precio y prestador antes de cerrar el servicio.</p>
-  <a href="/">Volver al inicio</a>
+  <p>Tu folio es <strong id="request-folio"></strong>.</p>
+  <div class="quote-result">
+    <small>Precio estimado del servicio</small>
+    <strong id="request-price">Por confirmar</strong>
+    <span>Confirmaremos disponibilidad antes de cerrar el servicio.</span>
+  </div>
+  <a id="request-tracking-link" class="tracking-link" href="/seguimiento/">Ver estado de mi solicitud</a>
+  <a class="secondary-success-link" href="/">Volver al inicio</a>
 </section>
 </main>
 <script type="module" src="/assets/js/service-request.js"></script>
