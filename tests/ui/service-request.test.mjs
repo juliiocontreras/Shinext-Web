@@ -14,9 +14,12 @@ test("public request flow is mobile-first and captures matching fields",()=>{
   assert.match(html,/viewport-fit=cover/);
 });
 
-test("public request authenticates anonymously and writes a new lead",()=>{
+test("public request sends the lead to the Cloudflare dispatcher and mirrors it to Firestore",()=>{
+  assert.match(js,/shinext-dispatch\.juliiocontreras\.workers\.dev/);
+  assert.match(js,/fetch\(/);
+  assert.match(js,/\/leads/);
   assert.match(js,/signInAnonymously/);
-  assert.match(js,/collection\(db, "serviceRequests"\)/);
+  assert.match(js,/collection\(db,\s*"serviceRequests"\)/);
   assert.match(js,/status:\s*"new"/);
   assert.match(js,/dispatchStatus:\s*"pending"/);
 });
