@@ -1,4 +1,4 @@
-import { auth, db, functions, storage } from "/assets/js/firebase-client.js";
+import { auth, db, firebaseCapabilities, functions, storage } from "/assets/js/firebase-client.js";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -21,12 +21,27 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
 const page = document.body.dataset.page;
-const respondToOffer = httpsCallable(functions, "respondToOffer");
-const addServiceNote = httpsCallable(functions, "addServiceNote");
-const reportIncident = httpsCallable(functions, "reportIncident");
-const createSupplyRequest = httpsCallable(functions, "createSupplyRequest");
-const updateSupplyRequest = httpsCallable(functions, "updateSupplyRequest");
-const updateServiceStatus = httpsCallable(functions, "updateServiceStatus");
+
+function sparkSafeCallable(name) {
+  const invoke = httpsCallable(functions, name);
+  return async (payload) => {
+    if (!firebaseCapabilities.functions) {
+      const error = new Error(
+        "Esta acción está temporalmente deshabilitada mientras Shinext opera en modo gratuito de Firebase.",
+      );
+      error.code = "shinext/spark-mode";
+      throw error;
+    }
+    return invoke(payload);
+  };
+}
+
+const respondToOffer = sparkSafeCallable("respondToOffer");
+const addServiceNote = sparkSafeCallable("addServiceNote");
+const reportIncident = sparkSafeCallable("reportIncident");
+const createSupplyRequest = sparkSafeCallable("createSupplyRequest");
+const updateSupplyRequest = sparkSafeCallable("updateSupplyRequest");
+const updateServiceStatus = sparkSafeCallable("updateServiceStatus");
 
 function setStatus(element, message, kind = "") {
   if (!element) return;
@@ -69,6 +84,9 @@ function humanizeError(error) {
   }
   if (code.includes("failed-precondition")) {
     return "Esta solicitud ya no está disponible.";
+  }
+  if (code.includes("shinext/spark-mode")) {
+    return "Esta acción no está disponible por ahora en modo gratuito de Firebase.";
   }
   return error?.message || "No pudimos completar la acción.";
 }
