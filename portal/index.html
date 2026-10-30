@@ -73,7 +73,14 @@
       </section>
 
       <section id="view-calendar" class="portal-view" data-view="calendar" hidden>
-        <div class="section-title"><div><p>Calendario</p><h2>Mis próximos servicios</h2></div></div>
+        <div class="section-title"><div><p>Disponibilidad</p><h2>¿Cuándo puedes trabajar?</h2></div></div>
+        <form id="availability-form" class="availability-card">
+          <p class="section-helper">Marca tus bloques disponibles. El bot de asignación usará estos horarios para enviarte solicitudes compatibles.</p>
+          <div id="availability-grid" class="availability-grid"></div>
+          <button id="availability-save" class="portal-button primary" type="submit">Guardar disponibilidad</button>
+          <div id="availability-status" class="portal-status" aria-live="polite"></div>
+        </form>
+        <div class="section-title service-subsection"><div><p>Calendario</p><h2>Mis próximos servicios</h2></div></div>
         <div id="calendar-list" class="calendar-list">
           <div class="calendar-placeholder">
             <span aria-hidden="true">▦</span>
