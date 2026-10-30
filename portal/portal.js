@@ -23,6 +23,24 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
 const page = document.body.dataset.page;
+const PROVIDER_API = "https://shinext-provider.juliiocontreras.workers.dev";
+
+async function providerFetch(path, options = {}) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Inicia sesión para continuar.");
+  const token = await user.getIdToken();
+  const response = await fetch(`${PROVIDER_API}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "No pudimos completar la acción.");
+  return body;
+}
 
 function sparkSafeCallable(name) {
   const invoke = httpsCallable(functions, name);
@@ -461,7 +479,8 @@ function renderSupplyChecklists(checklists) {
 }
 
 async function loadWorkerOperations(user) {
-  const [offersSnapshot, servicesSnapshot, earningsSnapshot, suppliesSnapshot, checklistSnapshot] = await Promise.all([
+  const cloudOffersPromise = providerFetch("/offers").catch(() => ({ offers: [] }));
+  const [offersSnapshot, servicesSnapshot, earningsSnapshot, suppliesSnapshot, checklistSnapshot, cloudOfferResult] = await Promise.all([
     getDocs(query(collection(db, "serviceOffers"), where("workerUid", "==", user.uid))),
     getDocs(query(collection(db, "services"), where("assignedWorkerUid", "==", user.uid))),
     getDocs(query(collection(db, "workerEarnings"), where("workerUid", "==", user.uid))),
@@ -469,8 +488,22 @@ async function loadWorkerOperations(user) {
     getDocs(collection(db, "supplyChecklists")),
   ]);
 
-  const offers = offersSnapshot.docs
-    .map((document) => ({ id: document.id, ...document.data() }))
+  const firebaseOffers = offersSnapshot.docs
+    .map((document) => ({ id: document.id, ...document.data(), backend: "firebase" }));
+  const cloudOffers = (cloudOfferResult.offers || []).map((offer) => ({
+    id: offer.id,
+    status: offer.status,
+    backend: "cloudflare",
+    workerView: {
+      serviceType: offer.service_type,
+      zone: offer.zone,
+      scheduledAt: offer.requested_date,
+      durationMinutes: 0,
+      materialsProvider: offer.supplies_source === "shinext" ? "Shinext" : "Prestador",
+      workerEarning: 0,
+    },
+  }));
+  const offers = [...cloudOffers, ...firebaseOffers]
     .sort((a, b) => {
       const aDate = dateFrom(a.createdAt)?.getTime() || 0;
       const bDate = dateFrom(b.createdAt)?.getTime() || 0;
@@ -509,6 +542,7 @@ async function handleOfferAction(event) {
   const button = event.currentTarget;
   const offerId = button.dataset.offerId;
   const decision = button.dataset.offerAction;
+  const backend = button.dataset.offerBackend || "firebase";
   const card = button.closest("[data-offer-card]");
   const feedback = card?.querySelector(".offer-feedback");
   const buttons = card?.querySelectorAll("[data-offer-action]") || [];
@@ -521,7 +555,14 @@ async function handleOfferAction(event) {
   );
 
   try {
-    await respondToOffer({ offerId, decision });
+    if (backend === "cloudflare") {
+      await providerFetch(`/offers/${encodeURIComponent(offerId)}/respond`, {
+        method: "POST",
+        body: JSON.stringify({ decision }),
+      });
+    } else {
+      await respondToOffer({ offerId, decision });
+    }
     setStatus(
       feedback,
       decision === "accept"
@@ -617,6 +658,62 @@ async function handleServiceFollowup(event) {
   }
 }
 
+
+function buildAvailabilityEditor() {
+  const root = document.querySelector("#availability-grid");
+  if (!root || root.dataset.ready === "true") return;
+  const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const windows = [
+    ["morning","Mañana"],
+    ["afternoon","Tarde"],
+    ["evening","Noche"],
+  ];
+  root.innerHTML = days.map((day, weekday) => `
+    <div class="availability-day">
+      <strong>${day}</strong>
+      ${windows.map(([value,label]) => `<label class="availability-slot"><input type="checkbox" data-availability-weekday="${weekday}" data-availability-window="${value}"><span>${label}</span></label>`).join("")}
+    </div>`
+  ).join("");
+  root.dataset.ready = "true";
+}
+
+async function syncProviderProfile(worker) {
+  await providerFetch("/profile", {
+    method: "POST",
+    body: JSON.stringify({
+      displayName: worker.fullName || "",
+      zone: worker.zone || "",
+      serviceMode: worker.serviceMode || "independent",
+      serviceTypes: Array.isArray(worker.serviceTypes) && worker.serviceTypes.length ? worker.serviceTypes : ["all"],
+    }),
+  });
+}
+
+async function saveProviderAvailability(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = document.querySelector("#availability-status");
+  const button = document.querySelector("#availability-save");
+  const slots = [...form.querySelectorAll("[data-availability-weekday]")].map(input => ({
+    weekday: Number(input.dataset.availabilityWeekday),
+    timeWindow: input.dataset.availabilityWindow,
+    available: input.checked,
+  })).filter(slot => slot.available);
+  if (button) button.disabled = true;
+  setStatus(status, "Guardando disponibilidad…", "info");
+  try {
+    await providerFetch("/availability", {
+      method: "POST",
+      body: JSON.stringify({ slots }),
+    });
+    setStatus(status, "Disponibilidad guardada. El bot ya puede considerarla para nuevas solicitudes.", "success");
+  } catch (error) {
+    setStatus(status, humanizeError(error), "error");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 async function initPortal() {
   const loading = document.querySelector("#portal-loading");
   const app = document.querySelector("#portal-app");
@@ -630,6 +727,8 @@ async function initPortal() {
     try {
       const worker = await getApprovedWorker(user);
       hydrateWorker(worker);
+      buildAvailabilityEditor();
+      await syncProviderProfile(worker).catch(() => {});
       await loadWorkerOperations(user);
       if (loading) loading.hidden = true;
       if (app) app.hidden = false;
@@ -652,6 +751,8 @@ async function initPortal() {
   document.querySelectorAll("[data-go-view]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.goView));
   });
+
+  document.querySelector("#availability-form")?.addEventListener("submit", saveProviderAvailability);
 
   const supplyForm = document.querySelector("#supply-request-form");
   const supplyCategoryInput = document.querySelector("#supply-category");
