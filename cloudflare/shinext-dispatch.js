@@ -46,6 +46,19 @@ function quote(input){
   };
 }
 
+async function quoteRequest(request){
+  const body=await request.json();
+  const payload={
+    serviceType:clean(body.serviceType,40),
+    cleaningLevel:clean(body.cleaningLevel,40),
+    spaceSize:clean(body.spaceSize,40),
+    frequency:clean(body.frequency,40),
+    suppliesSource:clean(body.suppliesSource,40),
+  };
+  if(!["home","airbnb","office","commerce","industrial"].includes(payload.serviceType))return json(request,{error:"Tipo de servicio inválido."},400);
+  if(!["provider","shinext"].includes(payload.suppliesSource))return json(request,{error:"Modalidad de insumos inválida."},400);
+  return json(request,quote(payload));
+}
 async function createLead(request,env){
   const body=await request.json();
   const payload={
@@ -61,6 +74,9 @@ async function createLead(request,env){
     clientPhone:phone(body.clientPhone),
     clientEmail:clean(body.clientEmail,160).toLowerCase(),
     details:clean(body.details,700),
+    quoteAccepted:body.quoteAccepted===true,
+    quotedClientPrice:Number(body.quotedClientPrice||0),
+    pricingVersion:clean(body.pricingVersion,40),
   };
 
   if(!["home","airbnb","office","commerce","industrial"].includes(payload.serviceType))return json(request,{error:"Tipo de servicio inválido."},400);
@@ -68,6 +84,10 @@ async function createLead(request,env){
   if(!["provider","shinext"].includes(payload.suppliesSource))return json(request,{error:"Modalidad de insumos inválida."},400);
 
   const pricing=quote(payload);
+  if(!payload.quoteAccepted)return json(request,{error:"Debes aceptar la cotización antes de solicitar."},400);
+  if(payload.pricingVersion!==pricing.pricingVersion||payload.quotedClientPrice!==pricing.clientPrice){
+    return json(request,{error:"La cotización cambió. Actualiza el precio antes de continuar.",pricing},409);
+  }
   const id=crypto.randomUUID();
   const trackingToken=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
   const now=new Date().toISOString();
@@ -75,12 +95,14 @@ async function createLead(request,env){
   await env.DB.prepare(`INSERT INTO leads(
     id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,
     details,client_name,client_phone,client_email,status,source,created_at,updated_at,
-    client_price,commission_rate,worker_earning,tracking_token,pricing_version
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?)`).bind(
+    client_price,commission_rate,worker_earning,tracking_token,pricing_version,
+    quote_confirmed,quote_confirmed_at,payment_status,payment_amount
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?,?,?,?)`).bind(
     id,payload.serviceType,payload.cleaningLevel,payload.zone,payload.requestedDate,payload.timeWindow,
     payload.spaceSize,payload.frequency,payload.suppliesSource,payload.details,payload.clientName,
     payload.clientPhone,payload.clientEmail,now,now,pricing.clientPrice,pricing.commissionRate,
-    pricing.workerEarning,trackingToken,pricing.pricingVersion
+    pricing.workerEarning,trackingToken,pricing.pricingVersion,
+    1,now,"not_started",pricing.clientPrice
   ).run();
 
   const weekday=weekdayFromDate(payload.requestedDate);
@@ -145,6 +167,7 @@ export default {
     const url=new URL(request.url);
     try{
       if(request.method==="GET"&&url.pathname==="/health")return json(request,{ok:true,service:"shinext-dispatch"});
+      if(request.method==="POST"&&url.pathname==="/quote")return quoteRequest(request);
       if(request.method==="POST"&&url.pathname==="/leads")return createLead(request,env);
       const match=url.pathname.match(/^\/track\/([a-f0-9]{64})$/i);
       if(request.method==="GET"&&match)return trackLead(request,env,match[1]);
