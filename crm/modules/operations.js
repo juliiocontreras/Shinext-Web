@@ -52,6 +52,7 @@ function renderLead(item){
       <span>${esc(item.zone||"Zona por confirmar")} · ${esc(item.client_name||"Cliente")} · ${esc(item.client_phone||"")}</span>
       <span>${item.supplies_source==="shinext"?"Insumos Shinext Partner":"Prestador lleva insumos"} · ${esc(item.frequency||"once")}</span>
       <span>Prestador: ${item.assigned_worker_uid?esc(item.assigned_worker_uid):"Pendiente de asignación"} · Ganancia: ${money(item.worker_earning)}</span>
+      <span>Comisión Shinext: ${Number(item.commission_rate||0)*100}% · Pago: ${item.payment_status==="paid"?"Pagado":item.payment_status==="pending"?"Pendiente":"Aún no iniciado"}</span>
     </div>
     <div class="crm-service-actions">
       <span class="crm-row-status">${esc(label(item.status))}</span>
