@@ -46,6 +46,13 @@ async function loadFirebaseConfig() {
 
 const firebaseConfig = await loadFirebaseConfig();
 
+const requestedCapabilities = window.SHINEXT_FIREBASE_CAPABILITIES || {};
+
+export const firebaseCapabilities = Object.freeze({
+  functions: isLocal || requestedCapabilities.functions === true,
+  storage: isLocal || requestedCapabilities.storage === true,
+});
+
 export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
