@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#062d70">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Seguimiento de servicio | Shinext</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/brand/shinext-icon-192.png">
+  <link rel="stylesheet" href="/seguimiento/seguimiento.css">
+</head>
+<body>
+<header class="tracking-header">
+  <a href="/" aria-label="Volver a Shinext"><img src="/brand/shinext-logo.webp" alt="Shinext"></a>
+</header>
+<main class="tracking-shell">
+  <section class="tracking-intro">
+    <p>Seguimiento</p>
+    <h1>Estado de tu servicio</h1>
+    <span>Este enlace es privado. Puedes guardarlo para revisar avances sin iniciar sesión.</span>
+  </section>
+
+  <section id="tracking-loading" class="tracking-card">
+    <div class="loader" aria-hidden="true"></div>
+    <strong>Consultando tu solicitud…</strong>
+  </section>
+
+  <section id="tracking-result" class="tracking-card" hidden>
+    <div class="status-head">
+      <span id="tracking-status-dot" aria-hidden="true"></span>
+      <div>
+        <small>Estado actual</small>
+        <h2 id="tracking-status">Solicitud recibida</h2>
+      </div>
+    </div>
+    <div class="tracking-progress" aria-label="Progreso del servicio">
+      <span data-step="pending">Solicitud</span>
+      <span data-step="assigned">Prestador</span>
+      <span data-step="confirmed">Confirmado</span>
+      <span data-step="in_progress">En curso</span>
+      <span data-step="completed">Finalizado</span>
+    </div>
+    <dl class="tracking-details">
+      <div><dt>Servicio</dt><dd id="tracking-service">—</dd></div>
+      <div><dt>Zona</dt><dd id="tracking-zone">—</dd></div>
+      <div><dt>Fecha</dt><dd id="tracking-date">—</dd></div>
+      <div><dt>Horario</dt><dd id="tracking-time">—</dd></div>
+      <div><dt>Precio estimado</dt><dd id="tracking-price">—</dd></div>
+    </dl>
+    <p class="tracking-note">Cuando el prestador quede confirmado, Shinext continuará coordinando contigo por los datos de contacto de tu solicitud.</p>
+  </section>
+
+  <section id="tracking-error" class="tracking-card error-card" hidden>
+    <strong>No pudimos encontrar esta solicitud.</strong>
+    <span>Revisa que estés usando el enlace privado que recibiste al enviar tu solicitud.</span>
+    <a href="/solicitar/">Crear una nueva solicitud</a>
+  </section>
+</main>
+<script type="module" src="/assets/js/request-tracking.js"></script>
+</body>
+</html>
