@@ -6,17 +6,13 @@ on:
       deploy_target:
         description: "Qué desplegar"
         required: true
-        default: "all"
+        default: "hosting"
         type: choice
         options:
-          - all
           - hosting
-          - functions
           - rules
-  workflow_run:
-    workflows: ["Firebase CI"]
-    types: [completed]
-    branches: [main]
+          - functions
+          - all
 
 permissions:
   contents: read
@@ -27,7 +23,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-slim
     environment: production
     timeout-minutes: 15
@@ -35,8 +30,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Validate production configuration
         env:
@@ -110,7 +103,7 @@ jobs:
         run: npx firebase-tools deploy --project "$FIREBASE_PROJECT_ID"
 
       - name: Deploy Hosting
-        if: ${{ github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'hosting') }}
+        if: ${{ inputs.deploy_target == 'hosting' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
@@ -131,7 +124,7 @@ jobs:
         run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID"
 
       - name: Production Hosting smoke checks
-        if: ${{ github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'hosting') }}
+        if: ${{ inputs.deploy_target == 'hosting' }}
         env:
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
         run: |
