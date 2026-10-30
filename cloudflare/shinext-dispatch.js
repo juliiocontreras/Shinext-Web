@@ -27,16 +27,16 @@ function clean(value,max=160){return String(value??"").trim().slice(0,max);}
 function normalize(value){return clean(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
 function phone(value){return String(value??"").replace(/\D/g,"").slice(-10);}
 function weekdayFromDate(value){const d=new Date(value+"T12:00:00");return Number.isNaN(d.getTime())?-1:d.getDay();}
-function round10(value){return Math.max(0,Math.round(Number(value||0)/10)*10);}
+function roundPrice(value){return Math.max(0,Math.round(Number(value||0)/20)*20);}
 function quote(input){
   const base=BASE_PRICE[input.serviceType]??BASE_PRICE.home;
   const cleaning=CLEANING_MULTIPLIER[input.cleaningLevel]??1;
   const size=SIZE_MULTIPLIER[input.spaceSize]??1;
   const recurrence=FREQUENCY_MULTIPLIER[input.frequency]??1;
   const supplies=input.suppliesSource==="shinext"?1.12:1;
-  const clientPrice=round10(base*cleaning*size*recurrence*supplies);
+  const clientPrice=roundPrice(base*cleaning*size*recurrence*supplies);
   const commissionRate=input.suppliesSource==="shinext"?.2:.15;
-  const shinextCommission=round10(clientPrice*commissionRate);
+  const shinextCommission=clientPrice*commissionRate;
   return {
     clientPrice,
     commissionRate,
