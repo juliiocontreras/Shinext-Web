@@ -127,6 +127,7 @@ service cloud.firestore {
             "experience",
             "availability",
             "hasOwnSupplies",
+            "serviceMode",
             "status",
             "documentsPending",
             "createdAt",
@@ -220,23 +221,47 @@ service cloud.firestore {
     }
 
     match /supplyRequests/{requestId} {
+      function validWorkerSupplyCreate() {
+        return signedIn()
+          && request.resource.data.workerUid == request.auth.uid
+          && request.resource.data.status == "reported"
+          && get(/databases/$(database)/documents/workers/$(request.auth.uid)).data.serviceMode == "shinext_partner"
+          && request.resource.data.keys().hasOnly([
+            "workerUid",
+            "category",
+            "item",
+            "quantity",
+            "note",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ]);
+      }
+
       allow read: if signedIn()
         && (
           resource.data.workerUid == request.auth.uid
           || canManageSupplies()
           || isDirector()
         );
-      allow create, update, delete: if false;
+      allow create: if validWorkerSupplyCreate();
+      allow update: if canManageSupplies() || isDirector();
+      allow delete: if isDirector();
     }
 
     match /inventory/{itemId} {
       allow read: if canManageSupplies() || isDirector();
-      allow create, update, delete: if false;
+      allow create, update, delete: if canManageSupplies() || isDirector();
+    }
+
+    match /supplyChecklists/{checklistId} {
+      allow read: if signedIn();
+      allow create, update, delete: if canManageSupplies() || isDirector();
     }
 
     match /suppliers/{supplierId} {
       allow read: if canManageSupplies() || isDirector();
-      allow create, update, delete: if false;
+      allow create, update, delete: if canManageSupplies() || isDirector();
     }
 
     function canManageContent() {
