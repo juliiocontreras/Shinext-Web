@@ -93,14 +93,14 @@ jobs:
           esac
 
       - name: Deploy all
-        if: ${{ github.event_name == 'push' || inputs.deploy_target == 'all' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'all' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
         run: npx firebase-tools deploy --project "$FIREBASE_PROJECT_ID"
 
       - name: Deploy Hosting
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'hosting' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'hosting') }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
@@ -121,7 +121,15 @@ jobs:
         run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID"
 
       - name: Production Hosting smoke checks
-        if: ${{ github.event_name == 'push' || inputs.deploy_target == 'all' || inputs.deploy_target == 'hosting' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'hosting') }}
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          export SHINEXT_BASE_URL="https://${FIREBASE_PROJECT_ID}.web.app"
+          node scripts/production-hosting-smoke.mjs
+
+      - name: Production full-stack smoke checks
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'all' }}
         env:
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
         run: |
