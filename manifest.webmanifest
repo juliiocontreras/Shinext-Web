@@ -20,7 +20,7 @@
   ],
   "shortcuts": [
     {"name":"Solicitar limpieza","short_name":"Solicitar","url":"/solicitar/"},
-    {"name":"Quiero trabajar","short_name":"Trabajar","url":"/#trabaja"},
+    {"name":"Quiero trabajar","short_name":"Trabajar","url":"/trabaja/"},
     {"name":"Blog Shinext","short_name":"Blog","url":"/blog/"},
     {"name":"Portal de prestadores","short_name":"Portal","url":"/portal/"}
   ]
