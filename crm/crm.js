@@ -84,12 +84,20 @@ async function initApp(){
      document.querySelector("#crm-today").textContent=new Intl.DateTimeFormat("es-MX",{dateStyle:"medium"}).format(new Date());
      const modules=effectiveModules(role,profile),nav=document.querySelector("#crm-nav");
      nav.innerHTML=modules.map(key=>`<button type="button" data-crm-module="${key}">${moduleDefs[key].label}</button>`).join("");
-     nav.querySelectorAll("[data-crm-module]").forEach(b=>b.addEventListener("click",()=>loadModule(b.dataset.crmModule)));
+     nav.querySelectorAll("[data-crm-module]").forEach(b=>b.addEventListener("click",async()=>{
+       await loadModule(b.dataset.crmModule);
+       document.querySelector(".crm-sidebar")?.classList.remove("open");
+       document.querySelector("#crm-menu-toggle")?.setAttribute("aria-expanded","false");
+     }));
      document.querySelector("#crm-loading").hidden=true;document.querySelector("#crm-app").hidden=false;
      await loadModule("dashboard");
    }catch{try{await signOut(auth);}catch{} location.replace("/crm/login.html");}
  });
  document.querySelector("#crm-logout")?.addEventListener("click",async()=>{await signOut(auth);location.replace("/crm/login.html");});
- document.querySelector("#crm-menu-toggle")?.addEventListener("click",()=>document.querySelector(".crm-sidebar")?.classList.toggle("open"));
+ document.querySelector("#crm-menu-toggle")?.addEventListener("click",(event)=>{
+   const sidebar=document.querySelector(".crm-sidebar");
+   const open=sidebar?.classList.toggle("open")||false;
+   event.currentTarget.setAttribute("aria-expanded",String(open));
+ });
 }
 if(page==="login")initLogin(); else initApp();
