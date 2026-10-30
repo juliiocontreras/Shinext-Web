@@ -169,6 +169,8 @@ function hydrateWorker(worker) {
   const supplyHelper = document.querySelector("#supply-mode-helper");
   const partner = worker.serviceMode === "shinext_partner";
   document.body.dataset.providerMode = partner ? "shinext_partner" : "independent";
+  const supplyGrid = document.querySelector(".supply-grid");
+  if (supplyGrid) supplyGrid.hidden = !partner;
   if (name) name.textContent = String(worker.fullName || "bienvenido").split(" ")[0];
   if (zone) zone.textContent = worker.zone ? `Zona registrada: ${worker.zone}` : "";
   if (modeBadge) modeBadge.textContent = partner ? "Shinext Partner · 80%" : "Independiente · 85%";
@@ -223,8 +225,11 @@ function renderOffers(offers) {
   if (!list) return;
 
   const pending = offers.filter((offer) => offer.status === "pending");
+  const actionablePending = pending.filter((offer) => Number(offer.workerView?.workerEarning || 0) > 0);
   const count = document.querySelector("#pending-offers");
-  if (count) count.textContent = String(pending.length);
+  const empty = document.querySelector("#offers-empty");
+  if (count) count.textContent = String(actionablePending.length);
+  if (empty) empty.hidden = offers.length > 0;
 
   if (!offers.length) {
     list.replaceChildren();
