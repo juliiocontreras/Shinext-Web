@@ -506,7 +506,8 @@ async function loadWorkerOperations(user) {
       scheduledAt: offer.requested_date,
       durationMinutes: 0,
       materialsProvider: offer.supplies_source === "shinext" ? "Shinext" : "Prestador",
-      workerEarning: 0,
+      workerEarning: Number(offer.worker_earning || 0),
+      clientPrice: Number(offer.client_price || 0),
     },
   }));
   const offers = [...cloudOffers, ...firebaseOffers]
