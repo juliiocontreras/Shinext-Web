@@ -27,7 +27,7 @@
           <h1 id="welcome-title">Hola, <span id="worker-name">bienvenido</span></h1>
           <p id="worker-zone" class="muted"></p>
         </div>
-        <span class="active-badge">Cuenta activa</span>
+        <div class="worker-badges"><span id="worker-mode-badge" class="mode-badge">Modalidad</span><span class="active-badge">Cuenta activa</span></div>
       </section>
 
       <section id="view-home" class="portal-view active" data-view="home">
@@ -96,7 +96,11 @@
 
       <section id="view-supplies" class="portal-view" data-view="supplies" hidden>
         <div class="section-title"><div><p>Mis insumos</p><h2>¿Qué necesitas?</h2></div></div>
-        <p class="section-helper">Elige una categoría e indica qué te hace falta. Compras Shinext recibirá tu aviso.</p>
+        <p id="supply-mode-helper" class="section-helper">Elige una categoría e indica qué te hace falta. Compras Shinext recibirá tu aviso.</p>
+        <section class="supply-checklist-card">
+          <div class="section-title compact"><div><p>Checklist</p><h2>Lo que necesitas llevar</h2></div></div>
+          <div id="service-supply-checklist" class="checklist-list"><p class="section-helper">Cargando checklist de insumos…</p></div>
+        </section>
         <div class="supply-grid">
           <button type="button" class="supply-card" data-supply-category="cleaning_products"><span aria-hidden="true">◉</span><strong>Productos de limpieza</strong><small>Químicos y consumibles</small></button>
           <button type="button" class="supply-card" data-supply-category="tools"><span aria-hidden="true">⌁</span><strong>Herramientas</strong><small>Escobas, trapeadores y equipo</small></button>
