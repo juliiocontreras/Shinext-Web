@@ -28,8 +28,8 @@ const FREQUENCY_MULTIPLIER={
 
 const SHINEXT_SUPPLIES_MULTIPLIER=1.12;
 
-function roundTo10(value){
-  return Math.max(0,Math.round(Number(value||0)/10)*10);
+function roundPrice(value){
+  return Math.max(0,Math.round(Number(value||0)/20)*20);
 }
 
 export function quoteCleaningService(input={}){
@@ -45,9 +45,9 @@ export function quoteCleaningService(input={}){
   const frequencyMultiplier=FREQUENCY_MULTIPLIER[frequency]??1;
   const suppliesMultiplier=suppliesSource==="shinext"?SHINEXT_SUPPLIES_MULTIPLIER:1;
 
-  const clientPrice=roundTo10(base*cleaning*size*frequencyMultiplier*suppliesMultiplier);
+  const clientPrice=roundPrice(base*cleaning*size*frequencyMultiplier*suppliesMultiplier);
   const commissionRate=suppliesSource==="shinext"?0.2:0.15;
-  const shinextCommission=roundTo10(clientPrice*commissionRate);
+  const shinextCommission=clientPrice*commissionRate;
   const workerEarning=clientPrice-shinextCommission;
 
   return {
