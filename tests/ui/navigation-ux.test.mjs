@@ -48,3 +48,13 @@ test("provider cannot accept a Cloudflare offer without a defined earning",()=>{
   assert.match(portalJs,/Pago por confirmar/);
   assert.match(portalJs,/canAccept/);
 });
+
+test("provider portal only shows empty state when there are no actionable offers",()=>{
+  assert.match(portalHtml,/id="offers-empty"/);
+  assert.match(portalJs,/offers-empty/);
+});
+
+test("independent providers do not see Partner-only supply request controls",()=>{
+  assert.match(portalJs,/supply-grid/);
+  assert.match(portalJs,/hidden = !partner/);
+});
