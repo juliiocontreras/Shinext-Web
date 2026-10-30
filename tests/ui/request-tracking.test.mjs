@@ -34,3 +34,10 @@ test("operations can advance lead lifecycle used by customer tracking",async()=>
   assert.match(operations,/completed/);
   assert.match(operations,/\/status/);
 });
+
+
+test("service worker never caches private tracking URLs",async()=>{
+  const sw=await readFile(new URL("../../sw.js",import.meta.url),"utf8");
+  assert.match(sw,/PRIVATE_PREFIXES[^\n]*\/seguimiento\//);
+  assert.doesNotMatch(sw,/SHELL[^\n]*\/seguimiento\//);
+});
