@@ -8,6 +8,7 @@ import {
 } from "../auth/permissions.js";
 import { isUserRole, type UserRole } from "../auth/roles.js";
 import { writeAudit } from "../audit/writeAudit.js";
+import { calculateServiceEconomics } from "../finance/commission.js";
 import { assertAssignableRequest } from "./serviceState.js";
 
 async function getActorAccess(
@@ -52,7 +53,10 @@ export const createOffer = onCall(async (request) => {
 
   const serviceRequestId = String(request.data?.serviceRequestId || "").trim();
   const workerUid = String(request.data?.workerUid || "").trim();
-  const workerEarning = normalizeCurrency(request.data?.workerEarning);
+  const requestedWorkerEarning = request.data?.workerEarning;
+  const clientPrice = Number(request.data?.clientPrice || 0);
+  let resolvedWorkerEarning = requestedWorkerEarning ? normalizeCurrency(requestedWorkerEarning) : 0;
+  let resolvedCommissionRate = 0;
 
   if (!serviceRequestId || !workerUid) {
     throw new HttpsError(
@@ -99,7 +103,17 @@ export const createOffer = onCall(async (request) => {
     }
 
     const serviceRequest = serviceRequestSnapshot.data() || {};
+    const worker = workerSnapshot.data() || {};
     assertAssignableRequest(serviceRequest);
+
+    if (clientPrice > 0) {
+      const economics = calculateServiceEconomics(clientPrice, String(worker.serviceMode || "independent"));
+      resolvedWorkerEarning = economics.workerEarning;
+      resolvedCommissionRate = economics.commissionRate;
+    }
+    if (!resolvedWorkerEarning) {
+      throw new HttpsError("invalid-argument", "Falta el precio del servicio o la ganancia del prestador.");
+    }
 
     if (offerSnapshot.exists && offerSnapshot.data()?.status === "pending") {
       return;
@@ -113,7 +127,8 @@ export const createOffer = onCall(async (request) => {
       materialsProvider: String(
         serviceRequest.materialsProvider || "Por confirmar",
       ),
-      workerEarning,
+      workerEarning: resolvedWorkerEarning,
+      providerMode: String(worker.serviceMode || "independent"),
     };
 
     transaction.set(
@@ -142,7 +157,7 @@ export const createOffer = onCall(async (request) => {
     actorRole: role,
     targetType: "serviceRequest",
     targetId: serviceRequestId,
-    metadata: { workerUid, workerEarning },
+    metadata: { workerUid, workerEarning: resolvedWorkerEarning, commissionRate: resolvedCommissionRate },
   });
 
   return {
