@@ -154,9 +154,41 @@ service cloud.firestore {
     }
 
     match /serviceRequests/{serviceRequestId} {
+      function validPublicServiceRequestCreate() {
+        return signedIn()
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.status == "new"
+          && request.resource.data.dispatchStatus == "pending"
+          && request.resource.data.source == "web"
+          && request.resource.data.clientPhone is string
+          && request.resource.data.clientPhone.size() >= 10
+          && request.resource.data.serviceType in ["home", "airbnb", "office", "commerce", "industrial"]
+          && request.resource.data.suppliesSource in ["provider", "shinext"]
+          && request.resource.data.keys().hasOnly([
+            "ownerUid",
+            "serviceType",
+            "cleaningLevel",
+            "zone",
+            "requestedDate",
+            "timeWindow",
+            "spaceSize",
+            "frequency",
+            "suppliesSource",
+            "details",
+            "clientName",
+            "clientPhone",
+            "clientEmail",
+            "status",
+            "dispatchStatus",
+            "source",
+            "createdAt",
+            "updatedAt"
+          ]);
+      }
+
       allow read: if canManageServices();
-      // Service-request lifecycle changes are server-only.
-      allow create, update, delete: if false;
+      allow create: if validPublicServiceRequestCreate();
+      allow update, delete: if false;
     }
 
     match /serviceOffers/{offerId} {
