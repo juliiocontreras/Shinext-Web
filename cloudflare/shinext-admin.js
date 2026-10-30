@@ -45,7 +45,7 @@ async function verifyStaff(request){
 async function listLeads(request,env){
   const rows=await env.DB.prepare(`SELECT id,service_type,cleaning_level,zone,requested_date,time_window,
     space_size,frequency,supplies_source,client_name,client_phone,client_email,status,
-    assigned_worker_uid,client_price,commission_rate,worker_earning,created_at,updated_at
+    assigned_worker_uid,client_price,commission_rate,worker_earning,payment_status,payment_amount,created_at,updated_at
     FROM leads ORDER BY created_at DESC LIMIT 100`).all();
   return json(request,{leads:rows.results||[]});
 }
