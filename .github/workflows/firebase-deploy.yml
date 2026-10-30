@@ -25,9 +25,9 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     environment: production
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -56,24 +56,29 @@ jobs:
           node-version: "20"
 
       - name: Use Java 21
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target != 'hosting' }}
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Install web dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Functions dependencies
-        run: npm --prefix functions install
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.deploy_target == 'all' || inputs.deploy_target == 'functions') }}
+        run: npm --prefix functions ci
 
       - name: Build Cloud Functions
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.deploy_target == 'all' || inputs.deploy_target == 'functions') }}
         run: npm --prefix functions run build
 
       - name: Run Functions tests
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.deploy_target == 'all' || inputs.deploy_target == 'functions') }}
         run: npm --prefix functions test
 
       - name: Run Firebase emulator suite
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target != 'hosting' }}
         run: npm run emulators:exec
 
       - name: Write Firebase service account
