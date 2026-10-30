@@ -11,9 +11,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: firebase-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   firebase-emulator-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 15
 
     steps:
@@ -32,10 +36,10 @@ jobs:
           java-version: "21"
 
       - name: Install web test dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Functions dependencies
-        run: npm --prefix functions install
+        run: npm --prefix functions ci
 
       - name: Build Cloud Functions
         run: npm --prefix functions run build
