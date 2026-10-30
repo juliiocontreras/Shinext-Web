@@ -1,9 +1,21 @@
-import { db, functions } from "/assets/js/firebase-client.js";
+import { db, firebaseCapabilities, functions } from "/assets/js/firebase-client.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-functions.js";
 
-const saveMediaEmbed=httpsCallable(functions,"saveMediaEmbed");
-const saveBannerCampaign=httpsCallable(functions,"saveBannerCampaign");
+function sparkSafeCallable(name){
+  const invoke=httpsCallable(functions,name);
+  return async payload=>{
+    if(!firebaseCapabilities.functions){
+      const error=new Error("Esta acción está temporalmente deshabilitada mientras Shinext opera en modo gratuito de Firebase.");
+      error.code="shinext/spark-mode";
+      throw error;
+    }
+    return invoke(payload);
+  };
+}
+
+const saveMediaEmbed=sparkSafeCallable("saveMediaEmbed");
+const saveBannerCampaign=sparkSafeCallable("saveBannerCampaign");
 
 function esc(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
 
