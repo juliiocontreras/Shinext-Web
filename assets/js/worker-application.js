@@ -23,6 +23,8 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 if (!firebaseCapabilities.storage) {
+  const documentsSection = document.querySelector("#documents-section");
+  if (documentsSection) documentsSection.hidden = true;
   document.querySelectorAll('input[type="file"]').forEach((input) => {
     input.required = false;
     input.disabled = true;
