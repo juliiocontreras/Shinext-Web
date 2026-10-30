@@ -8,3 +8,12 @@
 .request-step-head h2{margin:2px 0 0;font-size:18px}
 .request-assurance{margin:16px 0;padding:13px 14px;border-radius:13px;background:#f2f7fd;color:var(--muted);font-size:13px;line-height:1.45}
 .request-assurance strong{color:var(--navy)}
+
+
+.quote-preview{display:grid;gap:12px;margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#f7fbff}
+.quote-preview small,.quote-preview span{display:block;color:var(--muted)}
+.quote-preview strong{display:block;margin:4px 0;font-size:28px;color:var(--navy)}
+.quote-button{min-height:48px;background:#fff;color:var(--navy);border:1px solid #b9cbe4}
+.quote-acceptance{grid-template-columns:auto 1fr;align-items:start;margin-top:14px}
+.quote-acceptance input{width:20px;height:20px;min-height:0;margin:1px 0}
+@media(min-width:700px){.quote-preview{grid-template-columns:1fr auto;align-items:center}.quote-button{width:auto;padding:0 18px}}
