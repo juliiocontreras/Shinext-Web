@@ -1,12 +1,9 @@
 name: Firebase CI
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
-  push:
-    branches:
-      - main
-      - "feat/**"
 
 permissions:
   contents: read
@@ -17,8 +14,8 @@ concurrency:
 
 jobs:
   quality-gate:
-    runs-on: ubuntu-slim
-    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -28,8 +25,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "20"
+          cache: npm
 
-      - name: Install test dependencies
+      - name: Install dependencies
         run: npm ci
 
       - name: Run UI and SEO tests
