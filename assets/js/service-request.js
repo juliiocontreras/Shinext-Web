@@ -8,6 +8,18 @@ const submit=document.querySelector("#request-submit");
 const statusBox=document.querySelector("#request-status");
 const success=document.querySelector("#request-success");
 const folio=document.querySelector("#request-folio");
+const requestedDate=form?.elements?.requestedDate;
+const serviceSelect=form?.elements?.serviceType;
+
+if(requestedDate){
+  const today=new Date();
+  const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  requestedDate.min=localDate;
+}
+const requestedService=new URLSearchParams(window.location.search).get("service");
+if(serviceSelect&&["home","airbnb","office","commerce","industrial"].includes(requestedService)){
+  serviceSelect.value=requestedService;
+}
 
 function status(message,kind=""){statusBox.textContent=message;statusBox.dataset.kind=kind;}
 function normalizePhone(value){return String(value||"").replace(/\D/g,"").slice(-10);}
