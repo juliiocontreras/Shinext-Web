@@ -10,6 +10,12 @@ const success=document.querySelector("#request-success");
 const folio=document.querySelector("#request-folio");
 const requestPrice=document.querySelector("#request-price");
 const trackingLink=document.querySelector("#request-tracking-link");
+const quoteButton=document.querySelector("#quote-button");
+const quotePreviewPrice=document.querySelector("#quote-preview-price");
+const quotePreviewDetail=document.querySelector("#quote-preview-detail");
+const quoteAcceptance=document.querySelector("#quote-acceptance");
+const quoteAccepted=form?.elements?.quoteAccepted;
+let activeQuote=null;
 const requestedDate=form?.elements?.requestedDate;
 const serviceSelect=form?.elements?.serviceType;
 
@@ -25,6 +31,66 @@ if(serviceSelect&&["home","airbnb","office","commerce","industrial"].includes(re
 
 function status(message,kind=""){statusBox.textContent=message;statusBox.dataset.kind=kind;}
 function normalizePhone(value){return String(value||"").replace(/\D/g,"").slice(-10);}
+function money(value){return new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(Number(value||0));}
+function pricingPayload(){
+  return {
+    serviceType:String(form.elements.serviceType.value||""),
+    cleaningLevel:String(form.elements.cleaningLevel.value||""),
+    spaceSize:String(form.elements.spaceSize.value||""),
+    frequency:String(form.elements.frequency.value||"once"),
+    suppliesSource:String(form.elements.suppliesSource.value||"provider"),
+  };
+}
+function invalidateQuote(){
+  activeQuote=null;
+  if(quoteAccepted) quoteAccepted.checked=false;
+  if(quoteAcceptance) quoteAcceptance.hidden=true;
+  if(quotePreviewPrice) quotePreviewPrice.textContent="Aún no calculado";
+  if(quotePreviewDetail) quotePreviewDetail.textContent="Calcula el precio antes de continuar.";
+  if(submit) submit.disabled=true;
+}
+async function loadQuote(){
+  const payload=pricingPayload();
+  if(!payload.serviceType){
+    form.elements.serviceType.focus();
+    status("Selecciona el tipo de servicio para calcular el precio.","error");
+    return;
+  }
+  quoteButton.disabled=true;
+  quoteButton.textContent="Calculando…";
+  status("");
+  try{
+    const response=await fetch(`${DISPATCH_URL}/quote`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload),
+    });
+    const quote=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(quote.error||"No pudimos calcular el precio.");
+    activeQuote=quote;
+    quotePreviewPrice.textContent=money(quote.clientPrice);
+    quotePreviewDetail.textContent=payload.suppliesSource==="shinext"
+      ? "Incluye modalidad Shinext Partner con insumos provistos por Shinext."
+      : "El prestador lleva los insumos requeridos para el servicio.";
+    quoteAcceptance.hidden=false;
+    if(quoteAccepted) quoteAccepted.checked=false;
+    submit.disabled=true;
+  }catch(error){
+    invalidateQuote();
+    status(error?.message||"No pudimos calcular el precio.","error");
+  }finally{
+    quoteButton.disabled=false;
+    quoteButton.textContent="Actualizar precio";
+  }
+}
+
+["serviceType","cleaningLevel","spaceSize","frequency","suppliesSource"].forEach(name=>{
+  form?.elements?.[name]?.addEventListener("change",invalidateQuote);
+});
+quoteButton?.addEventListener("click",loadQuote);
+quoteAccepted?.addEventListener("change",()=>{
+  submit.disabled=!(quoteAccepted.checked&&activeQuote);
+});
 
 async function mirrorLeadToFirestore(payload){
   try{
@@ -46,6 +112,10 @@ async function mirrorLeadToFirestore(payload){
 form?.addEventListener("submit",async event=>{
   event.preventDefault();
   if(!form.checkValidity()){form.reportValidity();return;}
+  if(!activeQuote||!quoteAccepted?.checked){
+    status("Primero revisa y acepta el precio estimado.","error");
+    return;
+  }
   submit.disabled=true;
   status("Buscando disponibilidad…");
   try{
@@ -66,6 +136,9 @@ form?.addEventListener("submit",async event=>{
       clientName:String(data.get("clientName")||"").trim(),
       clientPhone:phone,
       clientEmail:String(data.get("clientEmail")||"").trim().toLowerCase(),
+      quoteAccepted:true,
+      quotedClientPrice:Number(activeQuote.clientPrice||0),
+      pricingVersion:String(activeQuote.pricingVersion||""),
     };
 
     const response=await fetch(`${DISPATCH_URL}/leads`,{
@@ -76,7 +149,23 @@ form?.addEventListener("submit",async event=>{
     const result=await response.json().catch(()=>({}));
     if(!response.ok) throw new Error(result.error||"No pudimos registrar la solicitud.");
 
-    void mirrorLeadToFirestore(payload);
+    void mirrorLeadToFirestore({
+      serviceType:payload.serviceType,
+      cleaningLevel:payload.cleaningLevel,
+      zone:payload.zone,
+      requestedDate:payload.requestedDate,
+      timeWindow:payload.timeWindow,
+      spaceSize:payload.spaceSize,
+      frequency:payload.frequency,
+      suppliesSource:payload.suppliesSource,
+      details:payload.details,
+      clientName:payload.clientName,
+      clientPhone:payload.clientPhone,
+      clientEmail:payload.clientEmail,
+      clientPrice:Number(result.clientPrice||payload.quotedClientPrice||0),
+      pricingVersion:payload.pricingVersion,
+      quoteConfirmed:true,
+    });
 
     form.hidden=true;
     success.hidden=false;
