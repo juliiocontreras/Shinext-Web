@@ -26,3 +26,11 @@ test("provider offers show defined earning from dispatcher",()=>{
   assert.match(portalJs,/worker_earning/);
   assert.match(portalJs,/client_price/);
 });
+
+test("operations can advance lead lifecycle used by customer tracking",async()=>{
+  const operations=await readFile(new URL("../../crm/modules/operations.js",import.meta.url),"utf8");
+  assert.match(operations,/confirmed/);
+  assert.match(operations,/in_progress/);
+  assert.match(operations,/completed/);
+  assert.match(operations,/\/status/);
+});
