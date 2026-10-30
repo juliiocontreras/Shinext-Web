@@ -233,15 +233,16 @@ function renderOffers(offers) {
 
   list.innerHTML = offers.map((offer) => {
     const view = offer.workerView || {};
+    const canAccept = Number(view.workerEarning || 0) > 0;
     const pendingActions = offer.status === "pending"
       ? `<div class="service-actions">
-          <button class="offer-button accept" type="button" data-offer-action="accept" data-offer-id="${escapeHtml(offer.id)}">Aceptar</button>
-          <button class="offer-button reject" type="button" data-offer-action="reject" data-offer-id="${escapeHtml(offer.id)}">Rechazar</button>
+          ${canAccept ? `<button class="offer-button accept" type="button" data-offer-action="accept" data-offer-id="${escapeHtml(offer.id)}" data-offer-backend="${escapeHtml(offer.backend || "firebase")}">Aceptar</button>` : ""}
+          <button class="offer-button reject" type="button" data-offer-action="reject" data-offer-id="${escapeHtml(offer.id)}" data-offer-backend="${escapeHtml(offer.backend || "firebase")}">No me interesa</button>
         </div>`
       : "";
 
     const statusLabel = {
-      pending: "Por responder",
+      pending: canAccept ? "Por responder" : "En preparación",
       accepted: "Aceptado",
       rejected: "Rechazado",
       covered: "Servicio cubierto",
@@ -251,7 +252,7 @@ function renderOffers(offers) {
     return `<article class="worker-service-card" data-offer-card="${escapeHtml(offer.id)}">
       <div class="service-card-top">
         <span class="service-status status-${escapeHtml(offer.status)}">${statusLabel}</span>
-        <strong class="service-pay">${formatMoney(view.workerEarning)}</strong>
+        <strong class="service-pay">${canAccept ? formatMoney(view.workerEarning) : "Pago por confirmar"}</strong>
       </div>
       <h3>${escapeHtml(view.serviceType || "Servicio de limpieza")}</h3>
       <dl class="service-details">
