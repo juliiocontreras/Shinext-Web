@@ -160,6 +160,9 @@ service cloud.firestore {
           && request.resource.data.status == "new"
           && request.resource.data.dispatchStatus == "pending"
           && request.resource.data.source == "web"
+          && request.resource.data.quoteConfirmed == true
+          && request.resource.data.clientPrice is number
+          && request.resource.data.pricingVersion is string
           && request.resource.data.clientPhone is string
           && request.resource.data.clientPhone.size() >= 10
           && request.resource.data.serviceType in ["home", "airbnb", "office", "commerce", "industrial"]
@@ -181,6 +184,9 @@ service cloud.firestore {
             "status",
             "dispatchStatus",
             "source",
+            "clientPrice",
+            "pricingVersion",
+            "quoteConfirmed",
             "createdAt",
             "updatedAt"
           ]);
