@@ -70,6 +70,30 @@ Cuando la app se sirve desde Firebase Hosting, el cliente web obtiene automátic
 - Rutas públicas indexables: `/`, `/trabaja/`, `/blog/` y los tres artículos. `sitemap.xml` y `robots.txt` los declaran con URLs absolutas; `/crm/` y `/portal/` quedan `noindex` y fuera del sitemap.
 - Al cambiar cualquier archivo de la lista `SHELL` de `sw.js` hay que subir la versión de `CACHE`.
 
+## Modo gratuito (Spark)
+
+Mientras Shinext permanezca sin una cuenta de facturación vinculada:
+
+- Firebase Hosting, Authentication y Cloud Firestore pueden operar dentro de las cuotas gratuitas aplicables.
+- Cloud Functions y Cloud Storage se consideran no disponibles en producción.
+- El cliente exporta `firebaseCapabilities`; en producción, `functions` y `storage` están desactivados por defecto.
+- Los emuladores locales conservan ambas capacidades para desarrollo y pruebas.
+- El envío de expedientes con documentos se bloquea antes de crear datos parciales.
+- Las acciones del Portal/CRM que dependen de Functions fallan de forma controlada con un mensaje de disponibilidad.
+
+Cuando se decida habilitar esas capacidades, puede establecerse antes de cargar el cliente:
+
+```html
+<script>
+  window.SHINEXT_FIREBASE_CAPABILITIES = {
+    functions: true,
+    storage: true
+  };
+</script>
+```
+
+Esa bandera solo debe activarse después de que los servicios correspondientes estén realmente disponibles en el proyecto Firebase.
+
 ## Seguridad
 
 Las reglas iniciales de Firestore y Storage son **deny-by-default**. Los permisos se abrirán de forma explícita conforme se implementen los módulos y cada cambio debe cubrirse con pruebas de Emulator Suite.
