@@ -171,3 +171,6 @@
     top: 32px;
   }
 }
+
+
+.provider-mode-fieldset{border:0;padding:0;margin:4px 0;display:grid;gap:10px}.provider-mode-fieldset legend{font-weight:900;margin-bottom:8px}.provider-mode-card{display:flex!important;align-items:flex-start;gap:12px;padding:14px;border:1px solid #dbe6f3;border-radius:16px;background:#fff}.provider-mode-card input{margin-top:4px;flex:0 0 auto}.provider-mode-card span,.provider-mode-card strong,.provider-mode-card small{display:block}.provider-mode-card strong{color:#062d70}.provider-mode-card small{margin-top:5px;color:#60708e;line-height:1.4;font-weight:600}@media(max-width:520px){.provider-mode-card{padding:16px 14px;min-height:76px}}
