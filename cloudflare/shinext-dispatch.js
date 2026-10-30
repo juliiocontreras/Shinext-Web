@@ -76,7 +76,7 @@ async function createLead(request,env){
     id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,
     details,client_name,client_phone,client_email,status,source,created_at,updated_at,
     client_price,commission_rate,worker_earning,tracking_token,pricing_version
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?)`).bind(
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?)`).bind(
     id,payload.serviceType,payload.cleaningLevel,payload.zone,payload.requestedDate,payload.timeWindow,
     payload.spaceSize,payload.frequency,payload.suppliesSource,payload.details,payload.clientName,
     payload.clientPhone,payload.clientEmail,now,now,pricing.clientPrice,pricing.commissionRate,
