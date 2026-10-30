@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#062d70">
+  <meta name="description" content="Solicita limpieza profesional con Shinext en minutos.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/brand/shinext-icon-192.png">
+  <link rel="stylesheet" href="/solicitar/solicitar.css">
+  <title>Solicitar limpieza | Shinext</title>
+</head>
+<body>
+<header class="request-header"><a href="/" aria-label="Volver a Shinext"><img src="/brand/shinext-logo.webp" alt="Shinext"></a><span>Saltillo</span></header>
+<main class="request-shell">
+<section class="request-intro">
+  <p>Reserva en minutos</p>
+  <h1>¿Qué limpieza necesitas?</h1>
+  <span>Completa los datos del servicio. Shinext buscará al prestador compatible con tu zona y horario.</span>
+</section>
+<form id="service-request-form" class="request-card">
+  <div class="form-grid">
+    <label>Tipo de servicio
+      <select name="serviceType" required>
+        <option value="">Selecciona</option>
+        <option value="home">Casa y hogar</option>
+        <option value="airbnb">Airbnb</option>
+        <option value="office">Oficina</option>
+        <option value="commerce">Comercio</option>
+        <option value="industrial">Industrial</option>
+      </select>
+    </label>
+    <label>Nivel de limpieza
+      <select name="cleaningLevel" required>
+        <option value="maintenance">Mantenimiento</option>
+        <option value="deep">Profunda</option>
+        <option value="move">Mudanza / entrega</option>
+      </select>
+    </label>
+    <label>Zona o colonia<input name="zone" required maxlength="120" autocomplete="address-level3" placeholder="Ej. República, Centro"></label>
+    <label>Tamaño aproximado
+      <select name="spaceSize" required>
+        <option value="small">Hasta 80 m²</option>
+        <option value="medium">81–150 m²</option>
+        <option value="large">151–250 m²</option>
+        <option value="xl">Más de 250 m²</option>
+      </select>
+    </label>
+    <label>Fecha<input name="requestedDate" type="date" required></label>
+    <label>Horario
+      <select name="timeWindow" required>
+        <option value="morning">Mañana · 8:00–12:00</option>
+        <option value="afternoon">Tarde · 12:00–17:00</option>
+        <option value="evening">Tarde-noche · 17:00–20:00</option>
+      </select>
+    </label>
+    <label>Frecuencia
+      <select name="frequency" required>
+        <option value="once">Una sola vez</option>
+        <option value="weekly">Semanal</option>
+        <option value="biweekly">Quincenal</option>
+        <option value="monthly">Mensual</option>
+      </select>
+    </label>
+    <label>Insumos
+      <select name="suppliesSource" required>
+        <option value="provider">Prestador lleva insumos</option>
+        <option value="shinext">Shinext provee insumos</option>
+      </select>
+    </label>
+  </div>
+  <label>Indicaciones <small>(opcional)</small><textarea name="details" maxlength="700" rows="4" placeholder="Mascotas, estacionamiento, áreas prioritarias..."></textarea></label>
+  <div class="form-grid">
+    <label>Tu nombre<input name="clientName" required maxlength="120" autocomplete="name"></label>
+    <label>Teléfono<input name="clientPhone" required maxlength="20" inputmode="tel" autocomplete="tel"></label>
+    <label>Correo <small>(opcional)</small><input name="clientEmail" type="email" maxlength="160" autocomplete="email"></label>
+  </div>
+  <label class="consent"><input name="consent" type="checkbox" required><span>Acepto que Shinext use estos datos para coordinar y dar seguimiento a mi solicitud.</span></label>
+  <button id="request-submit" type="submit">Solicitar limpieza</button>
+  <div id="request-status" class="request-status" role="status" aria-live="polite"></div>
+</form>
+<section id="request-success" class="success-card" hidden>
+  <span>✓</span><h2>Solicitud recibida</h2><p>Tu folio es <strong id="request-folio"></strong>. Operaciones Shinext revisará disponibilidad y te contactará.</p><a href="/">Volver al inicio</a>
+</section>
+</main>
+<script type="module" src="/assets/js/service-request.js"></script>
+</body></html>
