@@ -1,5 +1,5 @@
-const CACHE = 'shinext-shell-v6';
-const SHELL = ['/', '/blog/', '/blog/limpieza-profunda-vs-mantenimiento/', '/blog/checklist-limpieza-airbnb-saltillo/', '/blog/limpieza-de-oficinas-en-saltillo/', '/styles.css', '/styles-desktop.css', '/overrides.css', '/app.js', '/manifest.webmanifest', '/brand/shinext-logo.webp', '/brand/shinext-icon-192.png', '/images/worker.webp'];
+const CACHE = 'shinext-shell-v7';
+const SHELL = ['/', '/solicitar/', '/solicitar/solicitar.css', '/assets/js/service-request.js', '/blog/', '/blog/limpieza-profunda-vs-mantenimiento/', '/blog/checklist-limpieza-airbnb-saltillo/', '/blog/limpieza-de-oficinas-en-saltillo/', '/styles.css', '/styles-desktop.css', '/overrides.css', '/app.js', '/manifest.webmanifest', '/brand/shinext-logo.webp', '/brand/shinext-icon-192.png', '/images/worker.webp'];
 const SHELL_PATHS = new Set(SHELL);
 const PRIVATE_PREFIXES = ['/crm/', '/portal/', '/__/'];
 
