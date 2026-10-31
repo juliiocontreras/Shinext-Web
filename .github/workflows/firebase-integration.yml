@@ -35,6 +35,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
 
       - name: Use Java 21
         uses: actions/setup-java@v5
@@ -55,4 +59,4 @@ jobs:
         run: npm --prefix functions test
 
       - name: Run Firebase emulator suite
-        run: npm run emulators:exec
+        run: npm run emulators:exec:integration
