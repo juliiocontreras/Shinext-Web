@@ -61,6 +61,7 @@ jobs:
           java-version: "21"
 
       - name: Install web dependencies
+        if: ${{ inputs.deploy_target != 'hosting' }}
         run: npm ci
 
       - name: Install Functions dependencies
@@ -107,7 +108,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-        run: npx firebase-tools deploy --only hosting --project "$FIREBASE_PROJECT_ID"
+        run: npx --yes firebase-tools@14.16.0 deploy --only hosting --project "$FIREBASE_PROJECT_ID"
 
       - name: Deploy Functions
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'functions' }}
