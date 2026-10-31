@@ -13,6 +13,11 @@ on:
           - rules
           - functions
           - all
+      run_full_validation:
+        description: "Ejecutar emuladores antes del deploy"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -54,14 +59,14 @@ jobs:
           node-version: "20"
 
       - name: Use Java 21
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target != 'hosting' }}
+        if: ${{ inputs.run_full_validation }}
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Install web dependencies
-        if: ${{ inputs.deploy_target != 'hosting' }}
+        if: ${{ inputs.run_full_validation }}
         run: npm ci
 
       - name: Install Functions dependencies
@@ -77,8 +82,8 @@ jobs:
         run: npm --prefix functions test
 
       - name: Run Firebase emulator suite
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target != 'hosting' }}
-        run: npm run emulators:exec
+        if: ${{ inputs.run_full_validation }}
+        run: npm run emulators:exec:integration
 
       - name: Write Firebase service account
         env:
@@ -101,7 +106,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-        run: npx firebase-tools deploy --project "$FIREBASE_PROJECT_ID"
+        run: npx --yes firebase-tools@14.16.0 deploy --project "$FIREBASE_PROJECT_ID"
 
       - name: Deploy Hosting
         if: ${{ inputs.deploy_target == 'hosting' }}
@@ -115,14 +120,14 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-        run: npx firebase-tools deploy --only functions --project "$FIREBASE_PROJECT_ID"
+        run: npx --yes firebase-tools@14.16.0 deploy --only functions --project "$FIREBASE_PROJECT_ID"
 
       - name: Deploy rules and indexes
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'rules' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-        run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID"
+        run: npx --yes firebase-tools@14.16.0 deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID"
 
       - name: Production Hosting smoke checks
         if: ${{ inputs.deploy_target == 'hosting' }}
