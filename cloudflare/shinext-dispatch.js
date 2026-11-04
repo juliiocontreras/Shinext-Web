@@ -111,19 +111,21 @@ async function persistLead(env,payload,{repeatOfLeadId="",preferredProviderUid="
   const trackingToken=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
   const now=new Date().toISOString();
   const recurrenceStatus=payload.frequency==="once"?"none":"active";
+  const nextDate=nextSuggestedDate(payload.requestedDate,payload.frequency);
+  const recurrenceConfirmationStatus=payload.frequency==="once"?"none":"pending_confirmation";
 
   await env.DB.prepare(`INSERT INTO leads(
     id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,
     details,client_name,client_phone,client_email,status,source,created_at,updated_at,
     client_price,commission_rate,worker_earning,tracking_token,pricing_version,
     quote_confirmed,quote_confirmed_at,payment_status,payment_amount,
-    preferred_provider_uid,repeat_of_lead_id,recurrence_status
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+    preferred_provider_uid,repeat_of_lead_id,recurrence_status,next_suggested_date,recurrence_confirmation_status
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
     id,payload.serviceType,payload.cleaningLevel,payload.zone,payload.requestedDate,payload.timeWindow,
     payload.spaceSize,payload.frequency,payload.suppliesSource,payload.details,payload.clientName,
     payload.clientPhone,payload.clientEmail,now,now,pricing.clientPrice,pricing.commissionRate,
     pricing.workerEarning,trackingToken,pricing.pricingVersion,1,now,"not_started",pricing.clientPrice,
-    preferredProviderUid||null,repeatOfLeadId||null,recurrenceStatus
+    preferredProviderUid||null,repeatOfLeadId||null,recurrenceStatus,nextDate||null,recurrenceConfirmationStatus
   ).run();
 
   const candidates=await rankCandidates(env,payload,preferredProviderUid);
@@ -196,7 +198,8 @@ async function trackLead(request,env,token){
   if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
   const lead=await env.DB.prepare(`SELECT l.id,l.service_type,l.cleaning_level,l.zone,l.requested_date,l.time_window,
     l.space_size,l.frequency,l.supplies_source,l.status,l.client_price,l.payment_status,l.recurrence_status,
-    l.created_at,l.updated_at,p.display_name AS provider_name,p.rating AS provider_rating,
+    l.next_suggested_date,l.recurrence_confirmation_status,l.created_at,l.updated_at,
+    p.display_name AS provider_name,p.rating AS provider_rating,
     p.completed_services AS provider_completed_services,
     CASE WHEN sr.id IS NULL THEN 0 ELSE 1 END AS rating_submitted
     FROM leads l
