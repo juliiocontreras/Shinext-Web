@@ -87,6 +87,17 @@ async function getProfileSummary(request,env,user){
   });
 }
 
+async function getProfileSummary(request,env,user){
+  const uid=user.user_id||user.sub;
+  const profile=await env.DB.prepare("SELECT rating,completed_services,service_mode,zone FROM providers WHERE uid=?").bind(uid).first();
+  return json(request,{
+    rating:Number(profile?.rating||0),
+    completed_services:Number(profile?.completed_services||0),
+    service_mode:profile?.service_mode||"independent",
+    zone:profile?.zone||"",
+  });
+}
+
 async function listOffers(request,env,user){
   const uid=user.user_id||user.sub;
   const rows=await env.DB.prepare(`SELECT
@@ -138,6 +149,7 @@ export default {
     try{
       if(request.method==="GET"&&url.pathname==="/health")return json(request,{ok:true,service:"shinext-provider"});
       const user=await verifyWorker(request);
+      if(request.method==="GET"&&url.pathname==="/me")return getProfileSummary(request,env,user);
       if(request.method==="GET"&&url.pathname==="/me")return getProfileSummary(request,env,user);
       if(request.method==="POST"&&url.pathname==="/profile")return saveProfile(request,env,user);
       if(request.method==="POST"&&url.pathname==="/availability")return saveAvailability(request,env,user);
