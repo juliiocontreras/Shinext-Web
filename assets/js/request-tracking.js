@@ -9,6 +9,13 @@ const providerName=document.querySelector("#tracking-provider-name");
 const providerRating=document.querySelector("#tracking-provider-rating");
 const ratingForm=document.querySelector("#rating-form");
 const ratingStatus=document.querySelector("#rating-status");
+const recurrenceControls=document.querySelector("#recurrence-controls");
+const recurrenceLabel=document.querySelector("#recurrence-label");
+const recurrenceHelper=document.querySelector("#recurrence-helper");
+const recurrenceToggle=document.querySelector("#recurrence-toggle");
+const repeatForm=document.querySelector("#repeat-service-form");
+const repeatStatus=document.querySelector("#repeat-status");
+let currentTracking=null;
 
 const serviceLabels={home:"Casa y hogar",airbnb:"Airbnb",office:"Oficina",commerce:"Comercio",industrial:"Industrial"};
 const timeLabels={morning:"Mañana · 8:00–12:00",afternoon:"Tarde · 12:00–17:00",evening:"Tarde-noche · 17:00–20:00"};
@@ -43,6 +50,28 @@ async function load(){
         ratingStatus.textContent="Gracias. Tu calificación ya fue registrada.";
       }
     }
+    currentTracking=data;
+    const recurring=data.frequency&&data.frequency!=="once";
+    if(recurrenceControls){
+      recurrenceControls.hidden=!recurring;
+      if(recurring){
+        const active=data.recurrence_status!=="paused";
+        recurrenceLabel.textContent=active?"Plan activo":"Plan pausado";
+        recurrenceHelper.textContent=active
+          ?"La recurrencia sigue activa. Puedes pausarla cuando quieras."
+          :"No se generarán nuevas solicitudes recurrentes mientras esté pausado.";
+        recurrenceToggle.textContent=active?"Pausar recurrencia":"Reactivar recurrencia";
+        recurrenceToggle.dataset.nextStatus=active?"paused":"active";
+      }
+    }
+    if(repeatForm){
+      repeatForm.hidden=data.status!=="completed";
+      const dateInput=repeatForm.elements.requestedDate;
+      if(dateInput&&!dateInput.min){
+        const now=new Date();
+        dateInput.min=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      }
+    }
 
     const currentIndex=Math.max(0,order.indexOf(data.status));
     document.querySelectorAll("[data-step]").forEach((step,index)=>{
@@ -56,6 +85,60 @@ async function load(){
     showError();
   }
 }
+recurrenceToggle?.addEventListener("click",async()=>{
+  const nextStatus=recurrenceToggle.dataset.nextStatus;
+  if(!nextStatus) return;
+  recurrenceToggle.disabled=true;
+  const original=recurrenceToggle.textContent;
+  recurrenceToggle.textContent="Actualizando…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/recurrence`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({status:nextStatus}),
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos actualizar la recurrencia.");
+    await load();
+  }catch(error){
+    recurrenceHelper.textContent=error.message;
+  }finally{
+    recurrenceToggle.disabled=false;
+    recurrenceToggle.textContent=original;
+  }
+});
+
+repeatForm?.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const data=new FormData(repeatForm);
+  const requestedDate=String(data.get("requestedDate")||"");
+  const timeWindow=String(data.get("timeWindow")||"");
+  const preferSameProvider=data.get("preferSameProvider")==="on";
+  const button=repeatForm.querySelector('button[type="submit"]');
+  button.disabled=true;
+  repeatStatus.textContent="Buscando disponibilidad…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/repeat`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({requestedDate,timeWindow,preferSameProvider}),
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos repetir el servicio.");
+    repeatStatus.innerHTML=`Nueva solicitud creada: <strong>${body.folio||""}</strong>. Precio: <strong>${money(body.clientPrice)}</strong>.`;
+    if(body.trackingToken){
+      const link=document.createElement("a");
+      link.href=`/seguimiento/?token=${encodeURIComponent(body.trackingToken)}`;
+      link.textContent=" Ver nueva solicitud";
+      repeatStatus.appendChild(link);
+    }
+    repeatForm.querySelectorAll("input,select,button").forEach(node=>node.disabled=true);
+  }catch(error){
+    repeatStatus.textContent=error.message;
+    button.disabled=false;
+  }
+});
+
 ratingForm?.addEventListener("submit",async event=>{
   event.preventDefault();
   const formData=new FormData(ratingForm);
