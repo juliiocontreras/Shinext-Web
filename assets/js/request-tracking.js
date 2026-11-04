@@ -20,6 +20,11 @@ const nextServiceDate=document.querySelector("#next-service-date");
 const confirmNextService=document.querySelector("#confirm-next-service");
 const skipNextService=document.querySelector("#skip-next-service");
 const nextServiceStatus=document.querySelector("#next-service-status");
+const serviceConfirmationCard=document.querySelector("#service-confirmation-card");
+const confirmServiceButton=document.querySelector("#confirm-service");
+const rescheduleButton=document.querySelector("#needs-reschedule");
+const serviceConfirmationHelper=document.querySelector("#service-confirmation-helper");
+const serviceConfirmationStatus=document.querySelector("#service-confirmation-status");
 let currentTracking=null;
 
 const serviceLabels={home:"Casa y hogar",airbnb:"Airbnb",office:"Oficina",commerce:"Comercio",industrial:"Industrial"};
@@ -56,6 +61,20 @@ async function load(){
       }
     }
     currentTracking=data;
+    const canConfirmService=["assigned","confirmed"].includes(data.status);
+    if(serviceConfirmationCard){
+      serviceConfirmationCard.hidden=!canConfirmService;
+      if(canConfirmService){
+        const confirmation=data.client_confirmation_status||"pending";
+        serviceConfirmationHelper.textContent=confirmation==="confirmed"
+          ?"Tu asistencia ya está confirmada."
+          :confirmation==="needs_reschedule"
+            ?"Operaciones ya fue notificado de que necesitas cambiar la fecha."
+            :"Confirma para que Operaciones y tu prestador sepan que todo sigue en pie.";
+        confirmServiceButton.hidden=confirmation==="confirmed";
+        rescheduleButton.hidden=confirmation==="needs_reschedule";
+      }
+    }
     const recurring=data.frequency&&data.frequency!=="once";
     const canConfirmNext=recurring&&data.status==="completed"&&data.recurrence_status==="active"&&data.next_suggested_date;
     if(nextServiceCard){
@@ -100,6 +119,51 @@ async function load(){
     showError();
   }
 }
+
+
+confirmServiceButton?.addEventListener("click",async()=>{
+  confirmServiceButton.disabled=true;
+  rescheduleButton.disabled=true;
+  serviceConfirmationStatus.textContent="Confirmando servicio…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/confirm-service`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:"{}",
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos confirmar el servicio.");
+    serviceConfirmationStatus.textContent="Servicio confirmado.";
+    await load();
+  }catch(error){
+    serviceConfirmationStatus.textContent=error.message;
+  }finally{
+    confirmServiceButton.disabled=false;
+    rescheduleButton.disabled=false;
+  }
+});
+
+rescheduleButton?.addEventListener("click",async()=>{
+  confirmServiceButton.disabled=true;
+  rescheduleButton.disabled=true;
+  serviceConfirmationStatus.textContent="Avisando a Operaciones…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/needs-reschedule`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:"{}",
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos registrar la solicitud de cambio.");
+    serviceConfirmationStatus.textContent="Listo. Operaciones revisará el cambio de fecha.";
+    await load();
+  }catch(error){
+    serviceConfirmationStatus.textContent=error.message;
+  }finally{
+    confirmServiceButton.disabled=false;
+    rescheduleButton.disabled=false;
+  }
+});
 
 confirmNextService?.addEventListener("click",async()=>{
   confirmNextService.disabled=true;
