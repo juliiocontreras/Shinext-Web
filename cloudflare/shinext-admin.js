@@ -43,10 +43,13 @@ async function verifyStaff(request){
 }
 
 async function listLeads(request,env){
-  const rows=await env.DB.prepare(`SELECT id,service_type,cleaning_level,zone,requested_date,time_window,
-    space_size,frequency,supplies_source,client_name,client_phone,client_email,status,
-    assigned_worker_uid,client_price,commission_rate,worker_earning,payment_status,payment_amount,created_at,updated_at
-    FROM leads ORDER BY created_at DESC LIMIT 100`).all();
+  const rows=await env.DB.prepare(`SELECT l.id,l.service_type,l.cleaning_level,l.zone,l.requested_date,l.time_window,
+    l.space_size,l.frequency,l.supplies_source,l.client_name,l.client_phone,l.client_email,l.status,
+    l.assigned_worker_uid,l.client_price,l.commission_rate,l.worker_earning,l.payment_status,l.payment_amount,
+    l.created_at,l.updated_at,p.rating AS provider_rating,p.completed_services
+    FROM leads l
+    LEFT JOIN providers p ON p.uid=l.assigned_worker_uid
+    ORDER BY l.created_at DESC LIMIT 100`).all();
   return json(request,{leads:rows.results||[]});
 }
 
