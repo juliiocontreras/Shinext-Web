@@ -41,6 +41,11 @@
       <span data-step="in_progress">En curso</span>
       <span data-step="completed">Finalizado</span>
     </div>
+    <section id="tracking-provider" class="tracking-provider" hidden>
+      <small>Tu prestador</small>
+      <strong id="tracking-provider-name">Prestador Shinext</strong>
+      <span id="tracking-provider-rating">Sin calificaciones todavía</span>
+    </section>
     <dl class="tracking-details">
       <div><dt>Servicio</dt><dd id="tracking-service">—</dd></div>
       <div><dt>Zona</dt><dd id="tracking-zone">—</dd></div>
@@ -49,6 +54,18 @@
       <div><dt>Precio estimado</dt><dd id="tracking-price">—</dd></div>
     </dl>
     <p class="tracking-note">Cuando el prestador quede confirmado, Shinext continuará coordinando contigo por los datos de contacto de tu solicitud.</p>
+    <form id="rating-form" class="rating-form" hidden>
+      <div>
+        <small>Servicio finalizado</small>
+        <h3>¿Cómo estuvo tu experiencia?</h3>
+      </div>
+      <div class="rating-stars" role="radiogroup" aria-label="Calificación">
+        <label><input type="radio" name="rating" value="1" required><span>1★</span></label><label><input type="radio" name="rating" value="2" required><span>2★</span></label><label><input type="radio" name="rating" value="3" required><span>3★</span></label><label><input type="radio" name="rating" value="4" required><span>4★</span></label><label><input type="radio" name="rating" value="5" required><span>5★</span></label>
+      </div>
+      <label>Comentario <small>(opcional)</small><textarea name="comment" rows="3" maxlength="500" placeholder="Cuéntanos qué salió bien o qué podemos mejorar."></textarea></label>
+      <button type="submit">Enviar calificación</button>
+      <div id="rating-status" class="rating-status" aria-live="polite"></div>
+    </form>
   </section>
 
   <section id="tracking-error" class="tracking-card error-card" hidden>
