@@ -54,6 +54,36 @@
       <div><dt>Precio estimado</dt><dd id="tracking-price">—</dd></div>
     </dl>
     <p class="tracking-note">Cuando el prestador quede confirmado, Shinext continuará coordinando contigo por los datos de contacto de tu solicitud.</p>
+
+    <section id="recurrence-controls" class="recurrence-controls" hidden>
+      <div>
+        <small>Servicio recurrente</small>
+        <strong id="recurrence-label">Plan activo</strong>
+        <span id="recurrence-helper">Puedes pausarlo y reactivarlo cuando lo necesites.</span>
+      </div>
+      <button id="recurrence-toggle" type="button">Pausar recurrencia</button>
+    </section>
+
+    <form id="repeat-service-form" class="repeat-service-form" hidden>
+      <div>
+        <small>¿Te gustó el servicio?</small>
+        <h3>Repetir esta limpieza</h3>
+        <p>Usaremos la misma configuración y la tarifa vigente.</p>
+      </div>
+      <div class="repeat-grid">
+        <label>Fecha<input name="requestedDate" type="date" required></label>
+        <label>Horario
+          <select name="timeWindow" required>
+            <option value="morning">Mañana · 8:00–12:00</option>
+            <option value="afternoon">Tarde · 12:00–17:00</option>
+            <option value="evening">Tarde-noche · 17:00–20:00</option>
+          </select>
+        </label>
+      </div>
+      <label class="repeat-provider-option"><input name="preferSameProvider" type="checkbox" checked><span>Preferir al mismo prestador si sigue disponible</span></label>
+      <button type="submit">Solicitar nuevamente</button>
+      <div id="repeat-status" class="rating-status" aria-live="polite"></div>
+    </form>
     <form id="rating-form" class="rating-form" hidden>
       <div>
         <small>Servicio finalizado</small>
