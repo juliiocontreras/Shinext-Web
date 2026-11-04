@@ -53,7 +53,7 @@ function renderLead(item){
       <span>${item.supplies_source==="shinext"?"Insumos Shinext Partner":"Prestador lleva insumos"} · ${esc(item.frequency||"once")}</span>
       <span>Prestador: ${item.assigned_worker_uid?esc(item.assigned_worker_uid):"Pendiente de asignación"} · Ganancia: ${money(item.worker_earning)}</span>
       <span>Reputación: ${Number(item.provider_rating||0)>0?`${Number(item.provider_rating).toFixed(1)}★ · ${Number(item.completed_services||0)} calificación(es)`:"Sin historial"}${Number(item.provider_rating||0)>0&&Number(item.provider_rating)<4?" · Revisar calidad":""}</span>
-      <span>Recurrencia: ${item.frequency==="once"?"Una vez":item.frequency==="weekly"?"Semanal":item.frequency==="biweekly"?"Quincenal":"Mensual"}${item.recurrence_status==="paused"?" · Pausada":item.recurrence_status==="active"?" · Activa":""}${item.repeat_of_lead_id?" · Repetición":""}</span>
+      <span>Recurrencia: ${item.frequency==="once"?"Una vez":item.frequency==="weekly"?"Semanal":item.frequency==="biweekly"?"Quincenal":"Mensual"}${item.recurrence_status==="paused"?" · Pausada":item.recurrence_status==="active"?" · Activa":""}${item.repeat_of_lead_id?" · Repetición":""}${item.next_suggested_date?` · Próxima: ${esc(item.next_suggested_date)}`:""}</span>
       <span>Comisión Shinext: ${Number(item.commission_rate||0)*100}% · Pago: ${item.payment_status==="paid"?"Pagado":item.payment_status==="pending"?"Pendiente":"Aún no iniciado"}</span>
     </div>
     <div class="crm-service-actions">
