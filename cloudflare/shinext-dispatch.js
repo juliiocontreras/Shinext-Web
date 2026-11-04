@@ -358,6 +358,10 @@ export default {
       if(request.method==="POST"&&ratingMatch)return submitRating(request,env,ratingMatch[1]);
       const repeatMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/repeat$/i);
       if(request.method==="POST"&&repeatMatch)return repeatService(request,env,repeatMatch[1]);
+      const confirmNextMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/confirm-next$/i);
+      if(request.method==="POST"&&confirmNextMatch)return confirmNextRecurring(request,env,confirmNextMatch[1]);
+      const skipNextMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/skip-next$/i);
+      if(request.method==="POST"&&skipNextMatch)return skipNextRecurring(request,env,skipNextMatch[1]);
       const recurrenceMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/recurrence$/i);
       if(request.method==="POST"&&recurrenceMatch)return updateRecurrence(request,env,recurrenceMatch[1]);
       const trackMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})$/i);
