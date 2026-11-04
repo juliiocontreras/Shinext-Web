@@ -198,7 +198,8 @@ async function trackLead(request,env,token){
   if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
   const lead=await env.DB.prepare(`SELECT l.id,l.service_type,l.cleaning_level,l.zone,l.requested_date,l.time_window,
     l.space_size,l.frequency,l.supplies_source,l.status,l.client_price,l.payment_status,l.recurrence_status,
-    l.next_suggested_date,l.recurrence_confirmation_status,l.created_at,l.updated_at,
+    l.next_suggested_date,l.recurrence_confirmation_status,l.client_confirmation_status,l.client_confirmed_at,
+    l.created_at,l.updated_at,
     p.display_name AS provider_name,p.rating AS provider_rating,
     p.completed_services AS provider_completed_services,
     CASE WHEN sr.id IS NULL THEN 0 ELSE 1 END AS rating_submitted
@@ -346,6 +347,29 @@ async function skipNextRecurring(request,env,token){
   return json(request,{ok:true,next_suggested_date:nextDate});
 }
 
+
+async function confirmUpcomingService(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const lead=await env.DB.prepare("SELECT id,status,requested_date FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(!["assigned","confirmed"].includes(lead.status))return json(request,{error:"Este servicio todavía no puede confirmarse."},409);
+  const now=new Date().toISOString();
+  await env.DB.prepare("UPDATE leads SET client_confirmation_status='confirmed',client_confirmed_at=?,status='confirmed',updated_at=? WHERE id=?")
+    .bind(now,now,lead.id).run();
+  return json(request,{ok:true,client_confirmation_status:"confirmed"});
+}
+
+async function requestServiceReschedule(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const lead=await env.DB.prepare("SELECT id,status FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(["completed","cancelled"].includes(lead.status))return json(request,{error:"Este servicio ya no puede modificarse."},409);
+  const now=new Date().toISOString();
+  await env.DB.prepare("UPDATE leads SET client_confirmation_status='needs_reschedule',updated_at=? WHERE id=?")
+    .bind(now,lead.id).run();
+  return json(request,{ok:true,client_confirmation_status:"needs_reschedule"});
+}
+
 export default {
   async fetch(request,env){
     if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors(request)});
@@ -358,6 +382,10 @@ export default {
       if(request.method==="POST"&&ratingMatch)return submitRating(request,env,ratingMatch[1]);
       const repeatMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/repeat$/i);
       if(request.method==="POST"&&repeatMatch)return repeatService(request,env,repeatMatch[1]);
+      const confirmServiceMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/confirm-service$/i);
+      if(request.method==="POST"&&confirmServiceMatch)return confirmUpcomingService(request,env,confirmServiceMatch[1]);
+      const rescheduleMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/needs-reschedule$/i);
+      if(request.method==="POST"&&rescheduleMatch)return requestServiceReschedule(request,env,rescheduleMatch[1]);
       const confirmNextMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/confirm-next$/i);
       if(request.method==="POST"&&confirmNextMatch)return confirmNextRecurring(request,env,confirmNextMatch[1]);
       const skipNextMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/skip-next$/i);
