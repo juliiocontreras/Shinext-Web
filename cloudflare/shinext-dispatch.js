@@ -71,11 +71,14 @@ async function rankCandidates(env,payload,preferredProviderUid=""){
     if(Number(provider.is_available)===1)score+=25;
     if((payload.suppliesSource==="shinext"&&provider.service_mode==="shinext_partner")
       ||(payload.suppliesSource==="provider"&&provider.service_mode==="independent"))score+=10;
-    if(preferredProviderUid&&provider.uid===preferredProviderUid)score+=20;
+    if(preferredProviderUid&&provider.uid===preferredProviderUid&&Number(provider.is_available)===1)score+=20;
     score+=Math.min(10,Number(provider.rating||0)*2);
     score-=Math.min(15,Number(provider.weekly_load||0)*3);
-    return {...provider,score};
-  }).filter(provider=>provider.score>=35)
+    const modeCompatible=(payload.suppliesSource==="shinext"&&provider.service_mode==="shinext_partner")
+      ||(payload.suppliesSource==="provider"&&provider.service_mode==="independent");
+    const typeCompatible=types.includes(payload.serviceType)||types.includes("all");
+    return {...provider,score,modeCompatible,typeCompatible};
+  }).filter(provider=>Number(provider.is_available)===1&&provider.modeCompatible&&provider.typeCompatible&&provider.score>=35)
     .sort((a,b)=>b.score-a.score)
     .slice(0,3);
 }
