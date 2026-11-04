@@ -89,7 +89,6 @@ recurrenceToggle?.addEventListener("click",async()=>{
   const nextStatus=recurrenceToggle.dataset.nextStatus;
   if(!nextStatus) return;
   recurrenceToggle.disabled=true;
-  const original=recurrenceToggle.textContent;
   recurrenceToggle.textContent="Actualizando…";
   try{
     const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/recurrence`,{
@@ -102,9 +101,9 @@ recurrenceToggle?.addEventListener("click",async()=>{
     await load();
   }catch(error){
     recurrenceHelper.textContent=error.message;
+    recurrenceToggle.textContent=nextStatus==="paused"?"Pausar recurrencia":"Reactivar recurrencia";
   }finally{
     recurrenceToggle.disabled=false;
-    recurrenceToggle.textContent=original;
   }
 });
 
