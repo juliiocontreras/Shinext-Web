@@ -28,6 +28,28 @@ function normalize(value){return clean(value).toLowerCase().normalize("NFD").rep
 function phone(value){return String(value??"").replace(/\D/g,"").slice(-10);}
 function weekdayFromDate(value){const d=new Date(value+"T12:00:00");return Number.isNaN(d.getTime())?-1:d.getDay();}
 function roundPrice(value){return Math.max(0,Math.round(Number(value||0)/20)*20);}
+function isoDate(date){return date.toISOString().slice(0,10);}
+function addDays(dateString,days){
+  const date=new Date(dateString+"T12:00:00Z");
+  if(Number.isNaN(date.getTime()))return "";
+  date.setUTCDate(date.getUTCDate()+days);
+  return isoDate(date);
+}
+function addMonths(dateString,months){
+  const source=new Date(dateString+"T12:00:00Z");
+  if(Number.isNaN(source.getTime()))return "";
+  const day=source.getUTCDate();
+  const target=new Date(Date.UTC(source.getUTCFullYear(),source.getUTCMonth()+months,1,12));
+  const lastDay=new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0,12)).getUTCDate();
+  target.setUTCDate(Math.min(day,lastDay));
+  return isoDate(target);
+}
+function nextSuggestedDate(requestedDate,frequency){
+  if(frequency==="weekly")return addDays(requestedDate,7);
+  if(frequency==="biweekly")return addDays(requestedDate,14);
+  if(frequency==="monthly")return addMonths(requestedDate,1);
+  return "";
+}
 
 function quote(input){
   const base=BASE_PRICE[input.serviceType]??BASE_PRICE.home;
