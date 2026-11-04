@@ -46,7 +46,7 @@ async function listLeads(request,env){
   const rows=await env.DB.prepare(`SELECT l.id,l.service_type,l.cleaning_level,l.zone,l.requested_date,l.time_window,
     l.space_size,l.frequency,l.supplies_source,l.client_name,l.client_phone,l.client_email,l.status,
     l.assigned_worker_uid,l.client_price,l.commission_rate,l.worker_earning,l.payment_status,l.payment_amount,
-    l.frequency,l.recurrence_status,l.repeat_of_lead_id,l.preferred_provider_uid,
+    l.frequency,l.recurrence_status,l.repeat_of_lead_id,l.preferred_provider_uid,l.next_suggested_date,l.recurrence_confirmation_status,
     l.created_at,l.updated_at,p.rating AS provider_rating,p.completed_services
     FROM leads l
     LEFT JOIN providers p ON p.uid=l.assigned_worker_uid
