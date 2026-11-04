@@ -28,6 +28,7 @@ function normalize(value){return clean(value).toLowerCase().normalize("NFD").rep
 function phone(value){return String(value??"").replace(/\D/g,"").slice(-10);}
 function weekdayFromDate(value){const d=new Date(value+"T12:00:00");return Number.isNaN(d.getTime())?-1:d.getDay();}
 function roundPrice(value){return Math.max(0,Math.round(Number(value||0)/20)*20);}
+
 function quote(input){
   const base=BASE_PRICE[input.serviceType]??BASE_PRICE.home;
   const cleaning=CLEANING_MULTIPLIER[input.cleaningLevel]??1;
@@ -46,6 +47,72 @@ function quote(input){
   };
 }
 
+function validService(payload){
+  return ["home","airbnb","office","commerce","industrial"].includes(payload.serviceType)
+    && ["provider","shinext"].includes(payload.suppliesSource)
+    && ["maintenance","deep","move"].includes(payload.cleaningLevel)
+    && ["small","medium","large","xl"].includes(payload.spaceSize)
+    && ["once","weekly","biweekly","monthly"].includes(payload.frequency);
+}
+
+async function rankCandidates(env,payload,preferredProviderUid=""){
+  const rows=await env.DB.prepare(`SELECT p.uid,p.zone,p.service_mode,p.service_types,p.rating,p.weekly_load,
+    CASE WHEN a.available=1 THEN 1 ELSE 0 END AS is_available
+    FROM providers p
+    LEFT JOIN provider_availability a ON a.provider_uid=p.uid AND a.weekday=? AND a.time_window=?
+    WHERE p.active=1`).bind(weekdayFromDate(payload.requestedDate),payload.timeWindow).all();
+
+  return (rows.results||[]).map(provider=>{
+    let score=0;
+    let types=[];
+    try{types=JSON.parse(provider.service_types||"[]");}catch{}
+    if(normalize(provider.zone)===normalize(payload.zone))score+=35;
+    if(types.includes(payload.serviceType)||types.includes("all"))score+=25;
+    if(Number(provider.is_available)===1)score+=25;
+    if((payload.suppliesSource==="shinext"&&provider.service_mode==="shinext_partner")
+      ||(payload.suppliesSource==="provider"&&provider.service_mode==="independent"))score+=10;
+    if(preferredProviderUid&&provider.uid===preferredProviderUid)score+=20;
+    score+=Math.min(10,Number(provider.rating||0)*2);
+    score-=Math.min(15,Number(provider.weekly_load||0)*3);
+    return {...provider,score};
+  }).filter(provider=>provider.score>=35)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,3);
+}
+
+async function persistLead(env,payload,{repeatOfLeadId="",preferredProviderUid=""}={}){
+  const pricing=quote(payload);
+  const id=crypto.randomUUID();
+  const trackingToken=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
+  const now=new Date().toISOString();
+  const recurrenceStatus=payload.frequency==="once"?"none":"active";
+
+  await env.DB.prepare(`INSERT INTO leads(
+    id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,
+    details,client_name,client_phone,client_email,status,source,created_at,updated_at,
+    client_price,commission_rate,worker_earning,tracking_token,pricing_version,
+    quote_confirmed,quote_confirmed_at,payment_status,payment_amount,
+    preferred_provider_uid,repeat_of_lead_id,recurrence_status
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+    id,payload.serviceType,payload.cleaningLevel,payload.zone,payload.requestedDate,payload.timeWindow,
+    payload.spaceSize,payload.frequency,payload.suppliesSource,payload.details,payload.clientName,
+    payload.clientPhone,payload.clientEmail,now,now,pricing.clientPrice,pricing.commissionRate,
+    pricing.workerEarning,trackingToken,pricing.pricingVersion,1,now,"not_started",pricing.clientPrice,
+    preferredProviderUid||null,repeatOfLeadId||null,recurrenceStatus
+  ).run();
+
+  const candidates=await rankCandidates(env,payload,preferredProviderUid);
+  for(let i=0;i<candidates.length;i++){
+    await env.DB.prepare(`INSERT OR IGNORE INTO offers(
+      id,lead_id,provider_uid,rank,score,status,created_at,client_price,commission_rate,worker_earning
+    ) VALUES(?,?,?,?,?,'pending',?,?,?,?)`).bind(
+      crypto.randomUUID(),id,candidates[i].uid,i+1,candidates[i].score,now,
+      pricing.clientPrice,pricing.commissionRate,pricing.workerEarning
+    ).run();
+  }
+  return {id,trackingToken,matched:candidates.length,pricing,recurrenceStatus};
+}
+
 async function quoteRequest(request){
   const body=await request.json();
   const payload={
@@ -55,10 +122,12 @@ async function quoteRequest(request){
     frequency:clean(body.frequency,40),
     suppliesSource:clean(body.suppliesSource,40),
   };
-  if(!["home","airbnb","office","commerce","industrial"].includes(payload.serviceType))return json(request,{error:"Tipo de servicio inválido."},400);
-  if(!["provider","shinext"].includes(payload.suppliesSource))return json(request,{error:"Modalidad de insumos inválida."},400);
+  if(!validService({...payload,zone:"x",requestedDate:"2026-01-01",timeWindow:"morning"})){
+    return json(request,{error:"Completa los datos del servicio."},400);
+  }
   return json(request,quote(payload));
 }
+
 async function createLead(request,env){
   const body=await request.json();
   const payload={
@@ -74,88 +143,43 @@ async function createLead(request,env){
     clientPhone:phone(body.clientPhone),
     clientEmail:clean(body.clientEmail,160).toLowerCase(),
     details:clean(body.details,700),
-    quoteAccepted:body.quoteAccepted===true,
-    quotedClientPrice:Number(body.quotedClientPrice||0),
-    pricingVersion:clean(body.pricingVersion,40),
   };
 
-  if(!["home","airbnb","office","commerce","industrial"].includes(payload.serviceType))return json(request,{error:"Tipo de servicio inválido."},400);
-  if(!payload.zone||!payload.requestedDate||!payload.timeWindow||!payload.clientName||payload.clientPhone.length<10)return json(request,{error:"Completa los datos requeridos."},400);
-  if(!["provider","shinext"].includes(payload.suppliesSource))return json(request,{error:"Modalidad de insumos inválida."},400);
+  if(!validService(payload)||!payload.zone||!payload.requestedDate||!payload.timeWindow||!payload.clientName||payload.clientPhone.length<10){
+    return json(request,{error:"Completa los datos requeridos."},400);
+  }
 
   const pricing=quote(payload);
-  if(!payload.quoteAccepted)return json(request,{error:"Debes aceptar la cotización antes de solicitar."},400);
-  if(payload.pricingVersion!==pricing.pricingVersion||payload.quotedClientPrice!==pricing.clientPrice){
+  if(body.quoteAccepted!==true)return json(request,{error:"Debes aceptar la cotización antes de solicitar."},400);
+  if(clean(body.pricingVersion,40)!==pricing.pricingVersion||Number(body.quotedClientPrice||0)!==pricing.clientPrice){
     return json(request,{error:"La cotización cambió. Actualiza el precio antes de continuar.",pricing},409);
   }
-  const id=crypto.randomUUID();
-  const trackingToken=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
-  const now=new Date().toISOString();
 
-  await env.DB.prepare(`INSERT INTO leads(
-    id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,
-    details,client_name,client_phone,client_email,status,source,created_at,updated_at,
-    client_price,commission_rate,worker_earning,tracking_token,pricing_version,
-    quote_confirmed,quote_confirmed_at,payment_status,payment_amount
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','web',?,?,?,?,?,?,?,?,?,?,?)`).bind(
-    id,payload.serviceType,payload.cleaningLevel,payload.zone,payload.requestedDate,payload.timeWindow,
-    payload.spaceSize,payload.frequency,payload.suppliesSource,payload.details,payload.clientName,
-    payload.clientPhone,payload.clientEmail,now,now,pricing.clientPrice,pricing.commissionRate,
-    pricing.workerEarning,trackingToken,pricing.pricingVersion,
-    1,now,"not_started",pricing.clientPrice
-  ).run();
-
-  const weekday=weekdayFromDate(payload.requestedDate);
-  const candidates=await env.DB.prepare(`SELECT p.uid,p.zone,p.service_mode,p.service_types,p.rating,p.weekly_load,
-    CASE WHEN a.available=1 THEN 1 ELSE 0 END AS is_available
-    FROM providers p
-    LEFT JOIN provider_availability a ON a.provider_uid=p.uid AND a.weekday=? AND a.time_window=?
-    WHERE p.active=1`).bind(weekday,payload.timeWindow).all();
-
-  const scored=(candidates.results||[]).map(provider=>{
-    let score=0,types=[];
-    try{types=JSON.parse(provider.service_types||"[]");}catch{}
-    if(normalize(provider.zone)===normalize(payload.zone))score+=35;
-    if(types.includes(payload.serviceType)||types.includes("all"))score+=25;
-    if(Number(provider.is_available)===1)score+=25;
-    if((payload.suppliesSource==="shinext"&&provider.service_mode==="shinext_partner")||
-       (payload.suppliesSource==="provider"&&provider.service_mode==="independent"))score+=10;
-    score+=Math.min(10,Number(provider.rating||0)*2);
-    score-=Math.min(15,Number(provider.weekly_load||0)*3);
-    return {...provider,score};
-  }).filter(provider=>provider.score>=35).sort((a,b)=>b.score-a.score).slice(0,3);
-
-  for(let i=0;i<scored.length;i++){
-    await env.DB.prepare(`INSERT OR IGNORE INTO offers(
-      id,lead_id,provider_uid,rank,score,status,created_at,client_price,commission_rate,worker_earning
-    ) VALUES(?,?,?,?,?,'pending',?,?,?,?)`).bind(
-      crypto.randomUUID(),id,scored[i].uid,i+1,scored[i].score,now,
-      pricing.clientPrice,pricing.commissionRate,pricing.workerEarning
-    ).run();
-  }
-
+  const created=await persistLead(env,payload);
   return json(request,{
     ok:true,
-    id,
-    folio:id.slice(0,8).toUpperCase(),
-    trackingToken,
-    matched:scored.length,
-    ...pricing,
+    id:created.id,
+    folio:created.id.slice(0,8).toUpperCase(),
+    trackingToken:created.trackingToken,
+    matched:created.matched,
+    recurrenceStatus:created.recurrenceStatus,
+    ...created.pricing,
   },201);
 }
 
 async function trackLead(request,env,token){
   if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
-  const lead=await env.DB.prepare(`SELECT l.service_type,l.zone,l.requested_date,l.time_window,l.status,
-    l.client_price,l.pricing_version,l.created_at,l.updated_at,l.assigned_worker_uid,
-    p.display_name AS provider_name,p.rating AS provider_rating,p.completed_services AS provider_completed_services,
+  const lead=await env.DB.prepare(`SELECT l.id,l.service_type,l.cleaning_level,l.zone,l.requested_date,l.time_window,
+    l.space_size,l.frequency,l.supplies_source,l.status,l.client_price,l.payment_status,l.recurrence_status,
+    l.created_at,l.updated_at,p.display_name AS provider_name,p.rating AS provider_rating,
+    p.completed_services AS provider_completed_services,
     CASE WHEN sr.id IS NULL THEN 0 ELSE 1 END AS rating_submitted
     FROM leads l
     LEFT JOIN providers p ON p.uid=l.assigned_worker_uid
     LEFT JOIN service_ratings sr ON sr.lead_id=l.id
     WHERE l.tracking_token=?`).bind(token).first();
   if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
-  const statusLabel={
+  lead.statusLabel={
     pending:"Buscando prestador",
     assigned:"Prestador asignado",
     confirmed:"Servicio confirmado",
@@ -163,7 +187,7 @@ async function trackLead(request,env,token){
     completed:"Servicio finalizado",
     cancelled:"Solicitud cancelada",
   }[lead.status]||"Solicitud recibida";
-  return json(request,{...lead,statusLabel});
+  return json(request,lead);
 }
 
 async function submitRating(request,env,token){
@@ -176,8 +200,9 @@ async function submitRating(request,env,token){
   if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
   if(lead.status!=="completed")return json(request,{error:"Podrás calificar cuando el servicio finalice."},409);
   if(!lead.assigned_worker_uid)return json(request,{error:"No hay prestador asignado para calificar."},409);
-  const existing=await env.DB.prepare("SELECT id FROM service_ratings WHERE lead_id=?").bind(lead.id).first();
-  if(existing)return json(request,{error:"Este servicio ya fue calificado."},409);
+  if(await env.DB.prepare("SELECT id FROM service_ratings WHERE lead_id=?").bind(lead.id).first()){
+    return json(request,{error:"Este servicio ya fue calificado."},409);
+  }
   const now=new Date().toISOString();
   await env.DB.prepare("INSERT INTO service_ratings(id,lead_id,provider_uid,rating,comment,created_at) VALUES(?,?,?,?,?,?)")
     .bind(crypto.randomUUID(),lead.id,lead.assigned_worker_uid,rating,comment,now).run();
@@ -186,6 +211,61 @@ async function submitRating(request,env,token){
   await env.DB.prepare("UPDATE providers SET rating=?,completed_services=?,updated_at=? WHERE uid=?")
     .bind(Number(aggregate.avg_rating||0),Number(aggregate.rating_count||0),now,lead.assigned_worker_uid).run();
   return json(request,{ok:true,rating:Number(aggregate.avg_rating||rating),completedServices:Number(aggregate.rating_count||1)});
+}
+
+async function repeatService(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const body=await request.json();
+  const source=await env.DB.prepare(`SELECT id,service_type,cleaning_level,zone,space_size,frequency,supplies_source,
+    details,client_name,client_phone,client_email,status,assigned_worker_uid
+    FROM leads WHERE tracking_token=?`).bind(token).first();
+  if(!source)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(source.status!=="completed")return json(request,{error:"Podrás repetir el servicio cuando haya finalizado."},409);
+
+  const requestedDate=clean(body.requestedDate,20);
+  const timeWindow=clean(body.timeWindow,40);
+  if(!requestedDate||!["morning","afternoon","evening"].includes(timeWindow)){
+    return json(request,{error:"Selecciona fecha y horario."},400);
+  }
+
+  const payload={
+    serviceType:source.service_type,
+    cleaningLevel:source.cleaning_level,
+    zone:source.zone,
+    requestedDate,
+    timeWindow,
+    spaceSize:source.space_size,
+    frequency:source.frequency,
+    suppliesSource:source.supplies_source,
+    clientName:source.client_name,
+    clientPhone:source.client_phone,
+    clientEmail:source.client_email,
+    details:source.details||"",
+  };
+  const preferredProvider=body.preferSameProvider===true?clean(source.assigned_worker_uid,160):"";
+  const created=await persistLead(env,payload,{repeatOfLeadId:source.id,preferredProviderUid:preferredProvider});
+  return json(request,{
+    ok:true,
+    id:created.id,
+    folio:created.id.slice(0,8).toUpperCase(),
+    trackingToken:created.trackingToken,
+    matched:created.matched,
+    preferredProvider:Boolean(preferredProvider),
+    ...created.pricing,
+  },201);
+}
+
+async function updateRecurrence(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const body=await request.json();
+  const next=body.status==="paused"?"paused":body.status==="active"?"active":"";
+  if(!next)return json(request,{error:"Estado de recurrencia inválido."},400);
+  const lead=await env.DB.prepare("SELECT id,frequency,recurrence_status FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(lead.frequency==="once")return json(request,{error:"Este servicio no tiene recurrencia."},409);
+  await env.DB.prepare("UPDATE leads SET recurrence_status=?,updated_at=? WHERE id=?")
+    .bind(next,new Date().toISOString(),lead.id).run();
+  return json(request,{ok:true,recurrence_status:next});
 }
 
 export default {
@@ -198,8 +278,12 @@ export default {
       if(request.method==="POST"&&url.pathname==="/leads")return createLead(request,env);
       const ratingMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/rating$/i);
       if(request.method==="POST"&&ratingMatch)return submitRating(request,env,ratingMatch[1]);
-      const match=url.pathname.match(/^\/track\/([a-f0-9]{64})$/i);
-      if(request.method==="GET"&&match)return trackLead(request,env,match[1]);
+      const repeatMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/repeat$/i);
+      if(request.method==="POST"&&repeatMatch)return repeatService(request,env,repeatMatch[1]);
+      const recurrenceMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/recurrence$/i);
+      if(request.method==="POST"&&recurrenceMatch)return updateRecurrence(request,env,recurrenceMatch[1]);
+      const trackMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})$/i);
+      if(request.method==="GET"&&trackMatch)return trackLead(request,env,trackMatch[1]);
       return json(request,{error:"Not found"},404);
     }catch(error){
       console.error(error);
