@@ -32,3 +32,13 @@ test("provider portal receives aggregate reputation",()=>{
   assert.match(provider,/completed_services/);
   assert.match(portal,/provider-rating/);
 });
+
+
+test("operations sees assigned provider reputation for quality control",async()=>{
+  const admin=await readFile(new URL("../../cloudflare/shinext-admin.js",import.meta.url),"utf8");
+  const operations=await readFile(new URL("../../crm/modules/operations.js",import.meta.url),"utf8");
+  assert.match(admin,/provider_rating/);
+  assert.match(admin,/completed_services/);
+  assert.match(operations,/provider_rating/);
+  assert.match(operations,/Reputación/);
+});
