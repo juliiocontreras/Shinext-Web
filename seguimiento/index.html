@@ -55,6 +55,19 @@
     </dl>
     <p class="tracking-note">Cuando el prestador quede confirmado, Shinext continuará coordinando contigo por los datos de contacto de tu solicitud.</p>
 
+    <section id="next-service-card" class="next-service-card" hidden>
+      <div>
+        <small>Próximo servicio sugerido</small>
+        <strong id="next-service-date">—</strong>
+        <span>Solo se creará la nueva solicitud cuando la confirmes.</span>
+      </div>
+      <div class="next-service-actions">
+        <button id="confirm-next-service" type="button">Confirmar siguiente</button>
+        <button id="skip-next-service" class="secondary" type="button">Omitir esta fecha</button>
+      </div>
+      <div id="next-service-status" class="rating-status" aria-live="polite"></div>
+    </section>
+
     <section id="recurrence-controls" class="recurrence-controls" hidden>
       <div>
         <small>Servicio recurrente</small>
