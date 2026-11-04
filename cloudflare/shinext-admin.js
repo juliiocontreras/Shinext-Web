@@ -47,6 +47,8 @@ async function listLeads(request,env){
     l.space_size,l.frequency,l.supplies_source,l.client_name,l.client_phone,l.client_email,l.status,
     l.assigned_worker_uid,l.client_price,l.commission_rate,l.worker_earning,l.payment_status,l.payment_amount,
     l.frequency,l.recurrence_status,l.repeat_of_lead_id,l.preferred_provider_uid,l.next_suggested_date,l.recurrence_confirmation_status,
+    l.client_confirmation_status,l.client_confirmed_at,
+    (SELECT COUNT(*) FROM service_reminders sr WHERE sr.lead_id=l.id AND sr.status='queued') AS queued_reminders,
     l.created_at,l.updated_at,p.rating AS provider_rating,p.completed_services
     FROM leads l
     LEFT JOIN providers p ON p.uid=l.assigned_worker_uid
