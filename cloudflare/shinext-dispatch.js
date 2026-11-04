@@ -296,6 +296,56 @@ async function updateRecurrence(request,env,token){
   return json(request,{ok:true,recurrence_status:next});
 }
 
+
+async function confirmNextRecurring(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const source=await env.DB.prepare("SELECT id,service_type,cleaning_level,zone,requested_date,time_window,space_size,frequency,supplies_source,details,client_name,client_phone,client_email,status,assigned_worker_uid,recurrence_status,next_suggested_date FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!source)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(source.status!=="completed")return json(request,{error:"El servicio actual debe estar finalizado."},409);
+  if(source.frequency==="once"||source.recurrence_status!=="active")return json(request,{error:"La recurrencia no está activa."},409);
+  if(!source.next_suggested_date)return json(request,{error:"No hay una próxima fecha sugerida."},409);
+
+  const payload={
+    serviceType:source.service_type,
+    cleaningLevel:source.cleaning_level,
+    zone:source.zone,
+    requestedDate:source.next_suggested_date,
+    timeWindow:source.time_window,
+    spaceSize:source.space_size,
+    frequency:source.frequency,
+    suppliesSource:source.supplies_source,
+    clientName:source.client_name,
+    clientPhone:source.client_phone,
+    clientEmail:source.client_email,
+    details:source.details||"",
+  };
+  const preferredProvider=clean(source.assigned_worker_uid,160);
+  const created=await persistLead(env,payload,{repeatOfLeadId:source.id,preferredProviderUid:preferredProvider});
+  await env.DB.prepare("UPDATE leads SET recurrence_confirmation_status='confirmed',updated_at=? WHERE id=?")
+    .bind(new Date().toISOString(),source.id).run();
+  return json(request,{
+    ok:true,
+    id:created.id,
+    folio:created.id.slice(0,8).toUpperCase(),
+    trackingToken:created.trackingToken,
+    requestedDate:payload.requestedDate,
+    matched:created.matched,
+    ...created.pricing,
+  },201);
+}
+
+async function skipNextRecurring(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const source=await env.DB.prepare("SELECT id,frequency,recurrence_status,next_suggested_date FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!source)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(source.frequency==="once"||source.recurrence_status!=="active")return json(request,{error:"La recurrencia no está activa."},409);
+  const nextDate=nextSuggestedDate(source.next_suggested_date,source.frequency);
+  if(!nextDate)return json(request,{error:"No pudimos calcular la siguiente fecha."},409);
+  await env.DB.prepare("UPDATE leads SET next_suggested_date=?,recurrence_confirmation_status='skipped',updated_at=? WHERE id=?")
+    .bind(nextDate,new Date().toISOString(),source.id).run();
+  return json(request,{ok:true,next_suggested_date:nextDate});
+}
+
 export default {
   async fetch(request,env){
     if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors(request)});
