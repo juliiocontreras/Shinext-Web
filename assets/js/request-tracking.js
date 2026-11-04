@@ -15,6 +15,11 @@ const recurrenceHelper=document.querySelector("#recurrence-helper");
 const recurrenceToggle=document.querySelector("#recurrence-toggle");
 const repeatForm=document.querySelector("#repeat-service-form");
 const repeatStatus=document.querySelector("#repeat-status");
+const nextServiceCard=document.querySelector("#next-service-card");
+const nextServiceDate=document.querySelector("#next-service-date");
+const confirmNextService=document.querySelector("#confirm-next-service");
+const skipNextService=document.querySelector("#skip-next-service");
+const nextServiceStatus=document.querySelector("#next-service-status");
 let currentTracking=null;
 
 const serviceLabels={home:"Casa y hogar",airbnb:"Airbnb",office:"Oficina",commerce:"Comercio",industrial:"Industrial"};
@@ -52,6 +57,16 @@ async function load(){
     }
     currentTracking=data;
     const recurring=data.frequency&&data.frequency!=="once";
+    const canConfirmNext=recurring&&data.status==="completed"&&data.recurrence_status==="active"&&data.next_suggested_date;
+    if(nextServiceCard){
+      nextServiceCard.hidden=!canConfirmNext;
+      if(canConfirmNext){
+        nextServiceDate.textContent=data.next_suggested_date;
+        nextServiceStatus.textContent=data.recurrence_confirmation_status==="skipped"
+          ?"La fecha anterior fue omitida. Esta es la siguiente sugerencia."
+          :"";
+      }
+    }
     if(recurrenceControls){
       recurrenceControls.hidden=!recurring;
       if(recurring){
@@ -85,6 +100,57 @@ async function load(){
     showError();
   }
 }
+
+confirmNextService?.addEventListener("click",async()=>{
+  confirmNextService.disabled=true;
+  skipNextService.disabled=true;
+  nextServiceStatus.textContent="Confirmando siguiente servicio…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/confirm-next`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:"{}",
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos confirmar el siguiente servicio.");
+    nextServiceStatus.innerHTML=`Siguiente servicio creado: <strong>${body.folio||""}</strong> · ${money(body.clientPrice)}.`;
+    if(body.trackingToken){
+      const link=document.createElement("a");
+      link.href=`/seguimiento/?token=${encodeURIComponent(body.trackingToken)}`;
+      link.textContent=" Ver siguiente servicio";
+      nextServiceStatus.appendChild(link);
+    }
+    confirmNextService.hidden=true;
+    skipNextService.hidden=true;
+  }catch(error){
+    nextServiceStatus.textContent=error.message;
+    confirmNextService.disabled=false;
+    skipNextService.disabled=false;
+  }
+});
+
+skipNextService?.addEventListener("click",async()=>{
+  confirmNextService.disabled=true;
+  skipNextService.disabled=true;
+  nextServiceStatus.textContent="Calculando la siguiente fecha…";
+  try{
+    const response=await fetch(`${DISPATCH_URL}/track/${encodeURIComponent(token)}/skip-next`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:"{}",
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||"No pudimos omitir esta fecha.");
+    nextServiceDate.textContent=body.next_suggested_date||"—";
+    nextServiceStatus.textContent="Fecha omitida. Te mostramos la siguiente opción del plan.";
+  }catch(error){
+    nextServiceStatus.textContent=error.message;
+  }finally{
+    confirmNextService.disabled=false;
+    skipNextService.disabled=false;
+  }
+});
+
 recurrenceToggle?.addEventListener("click",async()=>{
   const nextStatus=recurrenceToggle.dataset.nextStatus;
   if(!nextStatus) return;
