@@ -146,9 +146,14 @@ async function createLead(request,env){
 
 async function trackLead(request,env,token){
   if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
-  const lead=await env.DB.prepare(`SELECT service_type,zone,requested_date,time_window,status,
-    client_price,pricing_version,created_at,updated_at
-    FROM leads WHERE tracking_token=?`).bind(token).first();
+  const lead=await env.DB.prepare(`SELECT l.service_type,l.zone,l.requested_date,l.time_window,l.status,
+    l.client_price,l.pricing_version,l.created_at,l.updated_at,l.assigned_worker_uid,
+    p.display_name AS provider_name,p.rating AS provider_rating,p.completed_services AS provider_completed_services,
+    CASE WHEN sr.id IS NULL THEN 0 ELSE 1 END AS rating_submitted
+    FROM leads l
+    LEFT JOIN providers p ON p.uid=l.assigned_worker_uid
+    LEFT JOIN service_ratings sr ON sr.lead_id=l.id
+    WHERE l.tracking_token=?`).bind(token).first();
   if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
   const statusLabel={
     pending:"Buscando prestador",
@@ -161,6 +166,28 @@ async function trackLead(request,env,token){
   return json(request,{...lead,statusLabel});
 }
 
+async function submitRating(request,env,token){
+  if(!/^[a-f0-9]{64}$/i.test(token))return json(request,{error:"Seguimiento inválido."},404);
+  const body=await request.json();
+  const rating=Number(body.rating||0);
+  const comment=clean(body.comment,500);
+  if(!Number.isInteger(rating)||rating<1||rating>5)return json(request,{error:"Calificación inválida."},400);
+  const lead=await env.DB.prepare("SELECT id,status,assigned_worker_uid FROM leads WHERE tracking_token=?").bind(token).first();
+  if(!lead)return json(request,{error:"No encontramos esa solicitud."},404);
+  if(lead.status!=="completed")return json(request,{error:"Podrás calificar cuando el servicio finalice."},409);
+  if(!lead.assigned_worker_uid)return json(request,{error:"No hay prestador asignado para calificar."},409);
+  const existing=await env.DB.prepare("SELECT id FROM service_ratings WHERE lead_id=?").bind(lead.id).first();
+  if(existing)return json(request,{error:"Este servicio ya fue calificado."},409);
+  const now=new Date().toISOString();
+  await env.DB.prepare("INSERT INTO service_ratings(id,lead_id,provider_uid,rating,comment,created_at) VALUES(?,?,?,?,?,?)")
+    .bind(crypto.randomUUID(),lead.id,lead.assigned_worker_uid,rating,comment,now).run();
+  const aggregate=await env.DB.prepare("SELECT AVG(rating) AS avg_rating,COUNT(*) AS rating_count FROM service_ratings WHERE provider_uid=?")
+    .bind(lead.assigned_worker_uid).first();
+  await env.DB.prepare("UPDATE providers SET rating=?,completed_services=?,updated_at=? WHERE uid=?")
+    .bind(Number(aggregate.avg_rating||0),Number(aggregate.rating_count||0),now,lead.assigned_worker_uid).run();
+  return json(request,{ok:true,rating:Number(aggregate.avg_rating||rating),completedServices:Number(aggregate.rating_count||1)});
+}
+
 export default {
   async fetch(request,env){
     if(request.method==="OPTIONS")return new Response(null,{status:204,headers:cors(request)});
@@ -169,6 +196,8 @@ export default {
       if(request.method==="GET"&&url.pathname==="/health")return json(request,{ok:true,service:"shinext-dispatch"});
       if(request.method==="POST"&&url.pathname==="/quote")return quoteRequest(request);
       if(request.method==="POST"&&url.pathname==="/leads")return createLead(request,env);
+      const ratingMatch=url.pathname.match(/^\/track\/([a-f0-9]{64})\/rating$/i);
+      if(request.method==="POST"&&ratingMatch)return submitRating(request,env,ratingMatch[1]);
       const match=url.pathname.match(/^\/track\/([a-f0-9]{64})$/i);
       if(request.method==="GET"&&match)return trackLead(request,env,match[1]);
       return json(request,{error:"Not found"},404);
