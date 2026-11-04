@@ -691,7 +691,7 @@ async function hydrateProviderReputation() {
     const summary=await providerFetch("/me");
     const rating=Number(summary.rating||0);
     const completed=Number(summary.completed_services||0);
-    badge.textContent=completed>0 ? `${rating.toFixed(1)}★ · ${completed} servicio(s)` : "Sin calificaciones";
+    badge.textContent=completed>0 ? `${rating.toFixed(1)}★ · ${completed} calificación(es)` : "Sin calificaciones";
   }catch{
     badge.textContent="Reputación pendiente";
   }
