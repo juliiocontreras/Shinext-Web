@@ -684,6 +684,19 @@ function buildAvailabilityEditor() {
   root.dataset.ready = "true";
 }
 
+async function hydrateProviderReputation() {
+  const badge=document.querySelector("#provider-rating");
+  if(!badge) return;
+  try{
+    const summary=await providerFetch("/me");
+    const rating=Number(summary.rating||0);
+    const completed=Number(summary.completed_services||0);
+    badge.textContent=completed>0 ? `${rating.toFixed(1)}★ · ${completed} servicio(s)` : "Sin calificaciones";
+  }catch{
+    badge.textContent="Reputación pendiente";
+  }
+}
+
 async function syncProviderProfile(worker) {
   await providerFetch("/profile", {
     method: "POST",
@@ -736,6 +749,7 @@ async function initPortal() {
       hydrateWorker(worker);
       buildAvailabilityEditor();
       await syncProviderProfile(worker).catch(() => {});
+      await hydrateProviderReputation();
       await loadWorkerOperations(user);
       if (loading) loading.hidden = true;
       if (app) app.hidden = false;
